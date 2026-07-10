@@ -1,6 +1,6 @@
 {
   "lock": false,
-  "nodeModulesDir": true,
+  "nodeModulesDir": "auto",
   "tasks": {
     "check": "deno fmt --check . && deno lint . && deno check",
     "dev": "deno run -A --env scripts/generate-seo.ts && deno run -A --env --unstable-kv npm:vite",
