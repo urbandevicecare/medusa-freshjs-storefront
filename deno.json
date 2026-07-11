@@ -2,8 +2,8 @@
   "nodeModulesDir": "none",
   "tasks": {
     "check": "deno fmt --check . && deno lint . && deno check",
-    "dev": "deno run -A --env scripts/generate-seo.ts && deno run -A --env --unstable-kv npm:vite@6.2.0",
-    "build": "deno run -A --env scripts/generate-seo.ts && deno run -A --env --unstable-kv npm:vite@6.2.0 build",
+    "dev": "deno run -A --env scripts/generate-seo.ts && deno run -A --env --unstable-kv dev.ts",
+    "build": "deno run -A --env scripts/generate-seo.ts && deno run -A --env --unstable-kv dev.ts build",
     "start": "deno run -A --env scripts/generate-seo.ts && deno serve -A --env --unstable-kv _fresh/server.js",
     "update": "deno run -A -r jsr:@fresh/update ."
   },
