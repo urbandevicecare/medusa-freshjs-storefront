@@ -15,5 +15,14 @@ export interface State {
 export const define = createDefine<State>();
 
 export const STORE_NAME = Deno.env.get("STORE_NAME") || "Tech Store";
-export const STORE_DOMAIN = Deno.env.get("STORE_DOMAIN") || "techstore.com";
 export const LOGO_URL = Deno.env.get("LOGO_URL") || "/logo.svg";
+
+const storefrontUrl = Deno.env.get("STOREFRONT_URL") || "https://techstore.com";
+let derivedDomain = "techstore.com";
+try {
+  derivedDomain = new URL(storefrontUrl).hostname;
+} catch {
+  // fallback
+}
+export const STORE_DOMAIN = derivedDomain;
+export const STOREFRONT_URL = storefrontUrl;
