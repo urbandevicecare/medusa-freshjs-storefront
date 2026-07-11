@@ -17,12 +17,12 @@ export const define = createDefine<State>();
 export const STORE_NAME = Deno.env.get("STORE_NAME") || "Tech Store";
 export const LOGO_URL = Deno.env.get("LOGO_URL") || "/logo.svg";
 
-const storefrontUrl = Deno.env.get("STOREFRONT_URL") || "https://techstore.com";
-let derivedDomain = "techstore.com";
-try {
-  derivedDomain = new URL(storefrontUrl).hostname;
-} catch {
-  // fallback
-}
-export const STORE_DOMAIN = derivedDomain;
-export const STOREFRONT_URL = storefrontUrl;
+export const getStoreDomain = () => {
+  const url = Deno.env.get("STOREFRONT_URL") || "https://techstore.com";
+  try {
+    const parsed = new URL(url.startsWith("http") ? url : `https://${url}`);
+    return parsed.hostname;
+  } catch (e) {
+    return "techstore.com";
+  }
+};

@@ -1,7 +1,7 @@
 import { define } from "../../lib/utils.ts";
 import { page } from "fresh";
 import { Head } from "fresh/runtime";
-import { STORE_DOMAIN, STORE_NAME } from "../../lib/utils.ts";
+import { getStoreDomain, STORE_NAME } from "../../lib/utils.ts";
 
 export const handler = define.handlers({
   GET(ctx) {
@@ -142,7 +142,7 @@ export default define.page(function TermsPage(props) {
       <h2 class="text-xl font-semibold mt-8 mb-4">7. Contact Information</h2>
       <p class="text-gray-700 mb-4">
         If you have any questions about these Terms, please contact us at
-        support@{STORE_DOMAIN} or visit our store in Westlands, Nairobi.
+        support@{getStoreDomain()} or visit our store in Westlands, Nairobi.
       </p>
     </div>
   );

@@ -2,7 +2,7 @@ import { define } from "../../lib/utils.ts";
 import { page } from "fresh";
 import { Head } from "fresh/runtime";
 import { Clock, Mail, MapPin, Phone } from "lucide-preact";
-import { STORE_DOMAIN, STORE_NAME } from "../../lib/utils.ts";
+import { getStoreDomain, STORE_NAME } from "../../lib/utils.ts";
 import ContactForm from "../../islands/ContactForm.tsx";
 
 export const handler = define.handlers({
@@ -83,18 +83,18 @@ export default define.page(function ContactPage(props) {
               <p class="text-gray-600">
                 General Inquiries:{" "}
                 <a
-                  href={`mailto:info@${STORE_DOMAIN}`}
+                  href={`mailto:info@${getStoreDomain()}`}
                   class="text-slate-900 hover:underline"
                 >
-                  info@{STORE_DOMAIN}
+                  info@{getStoreDomain()}
                 </a>
                 <br />
                 Support:{" "}
                 <a
-                  href={`mailto:support@${STORE_DOMAIN}`}
+                  href={`mailto:support@${getStoreDomain()}`}
                   class="text-slate-900 hover:underline"
                 >
-                  support@{STORE_DOMAIN}
+                  support@{getStoreDomain()}
                 </a>
               </p>
             </div>
@@ -121,7 +121,7 @@ export default define.page(function ContactPage(props) {
           <h3 class="text-2xl font-semibold text-gray-900 mb-6">
             Send us a Message
           </h3>
-          <ContactForm storeDomain={STORE_DOMAIN} />
+          <ContactForm storeDomain={getStoreDomain()} />
         </div>
       </div>
     </div>
