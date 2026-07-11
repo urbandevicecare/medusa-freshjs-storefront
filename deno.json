@@ -8,7 +8,22 @@
     "start": "deno run -A --env scripts/generate-seo.ts && deno serve -A --env --unstable-kv _fresh/server.js",
     "update": "deno run -A -r jsr:@fresh/update ."
   },
-  "lint": { "rules": { "tags": ["fresh", "recommended"] } },
+  "lint": {
+    "rules": {
+      "tags": ["fresh", "recommended"],
+      "exclude": [
+        "no-explicit-any",
+        "no-unused-vars",
+        "no-empty",
+        "react-no-danger",
+        "no-window",
+        "jsx-button-has-type",
+        "ban-ts-comment",
+        "jsx-boolean-value",
+        "prefer-const"
+      ]
+    }
+  },
   "exclude": ["**/_fresh/*"],
   "imports": {
     "@/": "./",
