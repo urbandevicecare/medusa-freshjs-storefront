@@ -18,7 +18,7 @@ export const handler = define.handlers({
       // Verify token with Medusa to ensure the user is genuinely logged in
       const { customer } = await medusa.store.customer.retrieve(
         {},
-        { Authorization: `Bearer ${token}` }
+        { Authorization: `Bearer ${token}` },
       );
 
       if (!customer || !customer.id) {
@@ -71,7 +71,7 @@ export const handler = define.handlers({
       try {
         const { customer } = await medusa.store.customer.retrieve(
           {},
-          { Authorization: `Bearer ${token}` }
+          { Authorization: `Bearer ${token}` },
         );
         if (customer && customer.id) {
           userRating = await getUserRating(productId, customer.id);

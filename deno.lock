@@ -1,0 +1,392 @@
+{
+  "version": "4",
+  "specifiers": {
+    "npm:vite@6.2.0": "6.2.0"
+  },
+  "npm": {
+    "@esbuild/aix-ppc64@0.25.12": {
+      "integrity": "sha512-Hhmwd6CInZ3dwpuGTF8fJG6yoWmsToE+vYgD4nytZVxcu1ulHpUQRAB1UJ8+N1Am3Mz4+xOByoQoSZf4D+CpkA=="
+    },
+    "@esbuild/android-arm64@0.25.12": {
+      "integrity": "sha512-6AAmLG7zwD1Z159jCKPvAxZd4y/VTO0VkprYy+3N2FtJ8+BQWFXU+OxARIwA46c5tdD9SsKGZ/1ocqBS/gAKHg=="
+    },
+    "@esbuild/android-arm@0.25.12": {
+      "integrity": "sha512-VJ+sKvNA/GE7Ccacc9Cha7bpS8nyzVv0jdVgwNDaR4gDMC/2TTRc33Ip8qrNYUcpkOHUT5OZ0bUcNNVZQ9RLlg=="
+    },
+    "@esbuild/android-x64@0.25.12": {
+      "integrity": "sha512-5jbb+2hhDHx5phYR2By8GTWEzn6I9UqR11Kwf22iKbNpYrsmRB18aX/9ivc5cabcUiAT/wM+YIZ6SG9QO6a8kg=="
+    },
+    "@esbuild/darwin-arm64@0.25.12": {
+      "integrity": "sha512-N3zl+lxHCifgIlcMUP5016ESkeQjLj/959RxxNYIthIg+CQHInujFuXeWbWMgnTo4cp5XVHqFPmpyu9J65C1Yg=="
+    },
+    "@esbuild/darwin-x64@0.25.12": {
+      "integrity": "sha512-HQ9ka4Kx21qHXwtlTUVbKJOAnmG1ipXhdWTmNXiPzPfWKpXqASVcWdnf2bnL73wgjNrFXAa3yYvBSd9pzfEIpA=="
+    },
+    "@esbuild/freebsd-arm64@0.25.12": {
+      "integrity": "sha512-gA0Bx759+7Jve03K1S0vkOu5Lg/85dou3EseOGUes8flVOGxbhDDh/iZaoek11Y8mtyKPGF3vP8XhnkDEAmzeg=="
+    },
+    "@esbuild/freebsd-x64@0.25.12": {
+      "integrity": "sha512-TGbO26Yw2xsHzxtbVFGEXBFH0FRAP7gtcPE7P5yP7wGy7cXK2oO7RyOhL5NLiqTlBh47XhmIUXuGciXEqYFfBQ=="
+    },
+    "@esbuild/linux-arm64@0.25.12": {
+      "integrity": "sha512-8bwX7a8FghIgrupcxb4aUmYDLp8pX06rGh5HqDT7bB+8Rdells6mHvrFHHW2JAOPZUbnjUpKTLg6ECyzvas2AQ=="
+    },
+    "@esbuild/linux-arm@0.25.12": {
+      "integrity": "sha512-lPDGyC1JPDou8kGcywY0YILzWlhhnRjdof3UlcoqYmS9El818LLfJJc3PXXgZHrHCAKs/Z2SeZtDJr5MrkxtOw=="
+    },
+    "@esbuild/linux-ia32@0.25.12": {
+      "integrity": "sha512-0y9KrdVnbMM2/vG8KfU0byhUN+EFCny9+8g202gYqSSVMonbsCfLjUO+rCci7pM0WBEtz+oK/PIwHkzxkyharA=="
+    },
+    "@esbuild/linux-loong64@0.25.12": {
+      "integrity": "sha512-h///Lr5a9rib/v1GGqXVGzjL4TMvVTv+s1DPoxQdz7l/AYv6LDSxdIwzxkrPW438oUXiDtwM10o9PmwS/6Z0Ng=="
+    },
+    "@esbuild/linux-mips64el@0.25.12": {
+      "integrity": "sha512-iyRrM1Pzy9GFMDLsXn1iHUm18nhKnNMWscjmp4+hpafcZjrr2WbT//d20xaGljXDBYHqRcl8HnxbX6uaA/eGVw=="
+    },
+    "@esbuild/linux-ppc64@0.25.12": {
+      "integrity": "sha512-9meM/lRXxMi5PSUqEXRCtVjEZBGwB7P/D4yT8UG/mwIdze2aV4Vo6U5gD3+RsoHXKkHCfSxZKzmDssVlRj1QQA=="
+    },
+    "@esbuild/linux-riscv64@0.25.12": {
+      "integrity": "sha512-Zr7KR4hgKUpWAwb1f3o5ygT04MzqVrGEGXGLnj15YQDJErYu/BGg+wmFlIDOdJp0PmB0lLvxFIOXZgFRrdjR0w=="
+    },
+    "@esbuild/linux-s390x@0.25.12": {
+      "integrity": "sha512-MsKncOcgTNvdtiISc/jZs/Zf8d0cl/t3gYWX8J9ubBnVOwlk65UIEEvgBORTiljloIWnBzLs4qhzPkJcitIzIg=="
+    },
+    "@esbuild/linux-x64@0.25.12": {
+      "integrity": "sha512-uqZMTLr/zR/ed4jIGnwSLkaHmPjOjJvnm6TVVitAa08SLS9Z0VM8wIRx7gWbJB5/J54YuIMInDquWyYvQLZkgw=="
+    },
+    "@esbuild/netbsd-arm64@0.25.12": {
+      "integrity": "sha512-xXwcTq4GhRM7J9A8Gv5boanHhRa/Q9KLVmcyXHCTaM4wKfIpWkdXiMog/KsnxzJ0A1+nD+zoecuzqPmCRyBGjg=="
+    },
+    "@esbuild/netbsd-x64@0.25.12": {
+      "integrity": "sha512-Ld5pTlzPy3YwGec4OuHh1aCVCRvOXdH8DgRjfDy/oumVovmuSzWfnSJg+VtakB9Cm0gxNO9BzWkj6mtO1FMXkQ=="
+    },
+    "@esbuild/openbsd-arm64@0.25.12": {
+      "integrity": "sha512-fF96T6KsBo/pkQI950FARU9apGNTSlZGsv1jZBAlcLL1MLjLNIWPBkj5NlSz8aAzYKg+eNqknrUJ24QBybeR5A=="
+    },
+    "@esbuild/openbsd-x64@0.25.12": {
+      "integrity": "sha512-MZyXUkZHjQxUvzK7rN8DJ3SRmrVrke8ZyRusHlP+kuwqTcfWLyqMOE3sScPPyeIXN/mDJIfGXvcMqCgYKekoQw=="
+    },
+    "@esbuild/openharmony-arm64@0.25.12": {
+      "integrity": "sha512-rm0YWsqUSRrjncSXGA7Zv78Nbnw4XL6/dzr20cyrQf7ZmRcsovpcRBdhD43Nuk3y7XIoW2OxMVvwuRvk9XdASg=="
+    },
+    "@esbuild/sunos-x64@0.25.12": {
+      "integrity": "sha512-3wGSCDyuTHQUzt0nV7bocDy72r2lI33QL3gkDNGkod22EsYl04sMf0qLb8luNKTOmgF/eDEDP5BFNwoBKH441w=="
+    },
+    "@esbuild/win32-arm64@0.25.12": {
+      "integrity": "sha512-rMmLrur64A7+DKlnSuwqUdRKyd3UE7oPJZmnljqEptesKM8wx9J8gx5u0+9Pq0fQQW8vqeKebwNXdfOyP+8Bsg=="
+    },
+    "@esbuild/win32-ia32@0.25.12": {
+      "integrity": "sha512-HkqnmmBoCbCwxUKKNPBixiWDGCpQGVsrQfJoVGYLPT41XWF8lHuE5N6WhVia2n4o5QK5M4tYr21827fNhi4byQ=="
+    },
+    "@esbuild/win32-x64@0.25.12": {
+      "integrity": "sha512-alJC0uCZpTFrSL0CCDjcgleBXPnCrEAhTBILpeAp7M/OFgoqtAetfBzX0xM00MUsVVPpVjlPuMbREqnZCXaTnA=="
+    },
+    "@rollup/rollup-android-arm-eabi@4.62.2": {
+      "integrity": "sha512-6o7ZLZK+BeenkZCFNDXqpbjw9bD6nuWonvS/lwQJp7NoVVxm6p3qE7qQ5jGuBjiFsgvqjD8mZAU5oWxTmbOeOg=="
+    },
+    "@rollup/rollup-android-arm64@4.62.2": {
+      "integrity": "sha512-BaH7BllCACHoH1LguOU56UItGfUWjujlO65kS9LAodViaN4bwIKd7oeW/ZHJ/4ljr/7MIiENnNy3HJ0zXv8Zkw=="
+    },
+    "@rollup/rollup-darwin-arm64@4.62.2": {
+      "integrity": "sha512-v39RCCvj4He82I9sFmk+M1VZ0PLM9sfsLVikjfx2hYBNALhrrOR2D3JjQA6AhlaSOgcR+RzrKY7e1+bT6SUO/A=="
+    },
+    "@rollup/rollup-darwin-x64@4.62.2": {
+      "integrity": "sha512-yl0y2vq3S3lHeuXhEdss6TWfKW8vkujImO12tn4ZkG/4oghr09LvdYm2RElVjokTQiUvDUGXLGsYeLqUMCKpGA=="
+    },
+    "@rollup/rollup-freebsd-arm64@4.62.2": {
+      "integrity": "sha512-tT4pvt4qXD+vEoezupCWi+a1F0vvDiksiHc+PxRlYTOH1I6/X4id9jPxTP+Fg+545euaFT1jJVs4CEdHZAU1vw=="
+    },
+    "@rollup/rollup-freebsd-x64@4.62.2": {
+      "integrity": "sha512-6nU5F2wCW+qvCBhTn1pdIU3bzsIoF7EUwsCDRxilWGprQR6yd508YnH9+OKFCwpfS8pjZqDUmnCAr7exax0XCg=="
+    },
+    "@rollup/rollup-linux-arm-gnueabihf@4.62.2": {
+      "integrity": "sha512-n1GJHPOvpIfhi3TmrCeh6S6URt9BFCt0KQE3qvexyGCTAKpR4Lg+eWvNZEqu7epxwus/8ElT3hacYEucm49SZg=="
+    },
+    "@rollup/rollup-linux-arm-musleabihf@4.62.2": {
+      "integrity": "sha512-JqgflS8wEB+UXV/vS1RpRbifGBeN4D5lz8D8oOFbFZw4vedvdOgCFAjfBmIMdW3yL10XpQQ0Ambepw6MXrhOnA=="
+    },
+    "@rollup/rollup-linux-arm64-gnu@4.62.2": {
+      "integrity": "sha512-wnFJkogWvN4jm/hQRF2UBaeUmk20j5+DmHvoyWii2b8HJDyvz1MF2OU/6ynXt2KR63rbZLWkFpoytpdc/yBuSA=="
+    },
+    "@rollup/rollup-linux-arm64-musl@4.62.2": {
+      "integrity": "sha512-HVu2bp0zhvJ8xHEV9+UUs7S90VadmBSY3LcIMvozbPo4AuMGDWlz3ymHLHZPX4hR67TKTt8Qp5PJ5RBg/i+RMQ=="
+    },
+    "@rollup/rollup-linux-loong64-gnu@4.62.2": {
+      "integrity": "sha512-mQqqAV8QaoSgr9I2fKDLY2BAVvmKjWoGiu/cSYQonsLvtqwEn1E4QYfnCOcp5zoEqNhsDYin1s6jx/VJmrxlZg=="
+    },
+    "@rollup/rollup-linux-loong64-musl@4.62.2": {
+      "integrity": "sha512-IxKLoxCQ2IWi6bT2akyDUBGsOImDKB+sPp4EsTmwFQ/fMwpCKm8uLSSgP/Kx/QYUgKis6SEZ5/Nlhup0DIA0PQ=="
+    },
+    "@rollup/rollup-linux-ppc64-gnu@4.62.2": {
+      "integrity": "sha512-Mk5ha2RQSgyFfmYYLkBpPnUk8D8FriBxesO1u9O75X0mHgXL1UQcH5Itl2lurWL2tj0RxV9b9tJgipac0hRY9A=="
+    },
+    "@rollup/rollup-linux-ppc64-musl@4.62.2": {
+      "integrity": "sha512-CjvEnqJL/0/TQ3TXX3OPIJ/kmBellrWd4heXUmHeJlTnmwjKpSJzoehLaL6Xk0ZnMHBu9dZuFADNOrtjF4v+2w=="
+    },
+    "@rollup/rollup-linux-riscv64-gnu@4.62.2": {
+      "integrity": "sha512-1SiZbzwdkaDURsew/tSOrooKiYy7EQGT6m8ufavAi9NEyQb/6VuIxFXAL1fqa4iZe3g4NbNk4P7J32z2tw5Mgg=="
+    },
+    "@rollup/rollup-linux-riscv64-musl@4.62.2": {
+      "integrity": "sha512-nQts12zJ3NQRoE6uYljOH89v7szzLDvG2JD/vsX+vGXU8w/At1GowTZ5/7qeFQ8m7L55rpR8Okugnuo5bgjy2Q=="
+    },
+    "@rollup/rollup-linux-s390x-gnu@4.62.2": {
+      "integrity": "sha512-E9/ll019jhPIJgpzfZoIkBGhcz+kKNgVWYRY0zr9srBdPPFVpvOKW8VaJKUbeK+eZXyQF9ltME+Kk6affeaPgg=="
+    },
+    "@rollup/rollup-linux-x64-gnu@4.62.2": {
+      "integrity": "sha512-5BqxR/pshjey51iliyzTD5Xi3EN0aLmQ2lZ3lvefVV9c82BvrLo2/6OT55iifpWBufs6kdwWbuOKS841DrmK9A=="
+    },
+    "@rollup/rollup-linux-x64-musl@4.62.2": {
+      "integrity": "sha512-uNN83XxQrRAh/w0/pmAfibcwyb6YWt4gP+dpnQKPVJshAloQ785ii8CT8ZCIxkGg9opVsvAlGhFitSm6D1Jjpg=="
+    },
+    "@rollup/rollup-openbsd-x64@4.62.2": {
+      "integrity": "sha512-srjEIxSH3LRnJN6THczDHWQplqEMFiAJrTab0msUryh9kwNpkICf3Ea6q6MN/2cZwRFUNx5w+h6Hpi4QuHS6Zg=="
+    },
+    "@rollup/rollup-openharmony-arm64@4.62.2": {
+      "integrity": "sha512-8hOJnxgbyObnCm5AlRA3A931xX19xq80RjVTKgJOvEKWqJruP/Uf12IbAOaDjjEXYRewwHLfmF0YRIdK3OwKWA=="
+    },
+    "@rollup/rollup-win32-arm64-msvc@4.62.2": {
+      "integrity": "sha512-mmF4AY1i0hG/bLWUctUq59gtmgaSIRa3cu/A3JFRp/sCNEme2bgDEiDS22P9FbnJB8NJNF4jPJiSP5RHQpUTDg=="
+    },
+    "@rollup/rollup-win32-ia32-msvc@4.62.2": {
+      "integrity": "sha512-DZgkknc6jhHrk46V25vbAM0zZkyP0nSDkJB8/dRkLTxv470dOmWDqGoEJl/9A0dFfS7yE3REOwNDxpHwSLSt0Q=="
+    },
+    "@rollup/rollup-win32-x64-gnu@4.62.2": {
+      "integrity": "sha512-T6xr6ucWSFto+VGajA8YH26LdpHRuP4YLHEKAtCWvJDOlnmWcDZVCI2Jmjr+IFHDlt2zRaTAKE4tfjTaWLgJBg=="
+    },
+    "@rollup/rollup-win32-x64-msvc@4.62.2": {
+      "integrity": "sha512-BfzEnDJOt9T8M989/lA37EcJgat01wLRnoi5dQf3QzOH7jzpqTAzdDbVfRljVr5r+jzKqpbHeyOfAaXxAd0PAA=="
+    },
+    "@types/estree@1.0.9": {
+      "integrity": "sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg=="
+    },
+    "esbuild@0.25.12": {
+      "integrity": "sha512-bbPBYYrtZbkt6Os6FiTLCTFxvq4tt3JKall1vRwshA3fdVztsLAatFaZobhkBC8/BrPetoa0oksYoKXoG4ryJg==",
+      "dependencies": [
+        "@esbuild/aix-ppc64",
+        "@esbuild/android-arm",
+        "@esbuild/android-arm64",
+        "@esbuild/android-x64",
+        "@esbuild/darwin-arm64",
+        "@esbuild/darwin-x64",
+        "@esbuild/freebsd-arm64",
+        "@esbuild/freebsd-x64",
+        "@esbuild/linux-arm",
+        "@esbuild/linux-arm64",
+        "@esbuild/linux-ia32",
+        "@esbuild/linux-loong64",
+        "@esbuild/linux-mips64el",
+        "@esbuild/linux-ppc64",
+        "@esbuild/linux-riscv64",
+        "@esbuild/linux-s390x",
+        "@esbuild/linux-x64",
+        "@esbuild/netbsd-arm64",
+        "@esbuild/netbsd-x64",
+        "@esbuild/openbsd-arm64",
+        "@esbuild/openbsd-x64",
+        "@esbuild/openharmony-arm64",
+        "@esbuild/sunos-x64",
+        "@esbuild/win32-arm64",
+        "@esbuild/win32-ia32",
+        "@esbuild/win32-x64"
+      ]
+    },
+    "fsevents@2.3.3": {
+      "integrity": "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw=="
+    },
+    "nanoid@3.3.15": {
+      "integrity": "sha512-y7Wygv/7mEOvxTuEQDB8StXdMRBWf1kR/tlhAzBRUFkB2jfcLOAxO/SHmOO2zgz1pVgK29/kyupn059/bCHdjA=="
+    },
+    "picocolors@1.1.1": {
+      "integrity": "sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA=="
+    },
+    "postcss@8.5.16": {
+      "integrity": "sha512-vuwillviilfKZsg0VGj5R/YwwcHx4SLsIOI/7K6mQkWx+l5cUHTjj5g0AasTBcyXsbfTgrwsUNmVUb5xVwyPwg==",
+      "dependencies": [
+        "nanoid",
+        "picocolors",
+        "source-map-js"
+      ]
+    },
+    "rollup@4.62.2": {
+      "integrity": "sha512-RFnrW4lhXA3s3eqHDZvN654g8OTjzRfqpIRJYczCGB6HzphckVAi/Qh4tbPUbRuDi7s1Llv8g/NspLkttY3gTA==",
+      "dependencies": [
+        "@rollup/rollup-android-arm-eabi",
+        "@rollup/rollup-android-arm64",
+        "@rollup/rollup-darwin-arm64",
+        "@rollup/rollup-darwin-x64",
+        "@rollup/rollup-freebsd-arm64",
+        "@rollup/rollup-freebsd-x64",
+        "@rollup/rollup-linux-arm-gnueabihf",
+        "@rollup/rollup-linux-arm-musleabihf",
+        "@rollup/rollup-linux-arm64-gnu",
+        "@rollup/rollup-linux-arm64-musl",
+        "@rollup/rollup-linux-loong64-gnu",
+        "@rollup/rollup-linux-loong64-musl",
+        "@rollup/rollup-linux-ppc64-gnu",
+        "@rollup/rollup-linux-ppc64-musl",
+        "@rollup/rollup-linux-riscv64-gnu",
+        "@rollup/rollup-linux-riscv64-musl",
+        "@rollup/rollup-linux-s390x-gnu",
+        "@rollup/rollup-linux-x64-gnu",
+        "@rollup/rollup-linux-x64-musl",
+        "@rollup/rollup-openbsd-x64",
+        "@rollup/rollup-openharmony-arm64",
+        "@rollup/rollup-win32-arm64-msvc",
+        "@rollup/rollup-win32-ia32-msvc",
+        "@rollup/rollup-win32-x64-gnu",
+        "@rollup/rollup-win32-x64-msvc",
+        "@types/estree",
+        "fsevents"
+      ]
+    },
+    "source-map-js@1.2.1": {
+      "integrity": "sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA=="
+    },
+    "vite@6.2.0": {
+      "integrity": "sha512-7dPxoo+WsT/64rDcwoOjk76XHj+TqNTIvHKcuMQ1k4/SeHDaQt5GFAeLYzrimZrMpn/O6DtdI03WUjdxuPM0oQ==",
+      "dependencies": [
+        "esbuild",
+        "fsevents",
+        "postcss",
+        "rollup"
+      ]
+    }
+  },
+  "redirects": {
+    "https://esm.sh/async-function@^1.0.0?target=denonext": "https://esm.sh/async-function@1.0.0?target=denonext",
+    "https://esm.sh/async-generator-function@^1.0.0?target=denonext": "https://esm.sh/async-generator-function@1.0.0?target=denonext",
+    "https://esm.sh/call-bind-apply-helpers@^1.0.1?target=denonext": "https://esm.sh/call-bind-apply-helpers@1.0.2?target=denonext",
+    "https://esm.sh/call-bind-apply-helpers@^1.0.2/functionApply?target=denonext": "https://esm.sh/call-bind-apply-helpers@1.0.2/functionApply?target=denonext",
+    "https://esm.sh/call-bind-apply-helpers@^1.0.2/functionCall?target=denonext": "https://esm.sh/call-bind-apply-helpers@1.0.2/functionCall?target=denonext",
+    "https://esm.sh/call-bind-apply-helpers@^1.0.2?target=denonext": "https://esm.sh/call-bind-apply-helpers@1.0.2?target=denonext",
+    "https://esm.sh/call-bound@^1.0.2?target=denonext": "https://esm.sh/call-bound@1.0.4?target=denonext",
+    "https://esm.sh/dunder-proto@^1.0.1/get?target=denonext": "https://esm.sh/dunder-proto@1.0.1/get?target=denonext",
+    "https://esm.sh/es-object-atoms@^1.0.0?target=denonext": "https://esm.sh/es-object-atoms@1.1.2?target=denonext",
+    "https://esm.sh/es-object-atoms@^1.1.1?target=denonext": "https://esm.sh/es-object-atoms@1.1.2?target=denonext",
+    "https://esm.sh/fetch-event-stream@^0.1.5?target=denonext": "https://esm.sh/fetch-event-stream@0.1.6?target=denonext",
+    "https://esm.sh/generator-function@^2.0.0?target=denonext": "https://esm.sh/generator-function@2.0.1?target=denonext",
+    "https://esm.sh/get-intrinsic@^1.2.5?target=denonext": "https://esm.sh/get-intrinsic@1.3.1?target=denonext",
+    "https://esm.sh/get-intrinsic@^1.3.0?target=denonext": "https://esm.sh/get-intrinsic@1.3.1?target=denonext",
+    "https://esm.sh/get-proto@^1.0.1/Object.getPrototypeOf?target=denonext": "https://esm.sh/get-proto@1.0.1/Object.getPrototypeOf?target=denonext",
+    "https://esm.sh/get-proto@^1.0.1/Reflect.getPrototypeOf?target=denonext": "https://esm.sh/get-proto@1.0.1/Reflect.getPrototypeOf?target=denonext",
+    "https://esm.sh/get-proto@^1.0.1?target=denonext": "https://esm.sh/get-proto@1.0.1?target=denonext",
+    "https://esm.sh/math-intrinsics@^1.1.0/abs?target=denonext": "https://esm.sh/math-intrinsics@1.1.0/abs?target=denonext",
+    "https://esm.sh/math-intrinsics@^1.1.0/floor?target=denonext": "https://esm.sh/math-intrinsics@1.1.0/floor?target=denonext",
+    "https://esm.sh/math-intrinsics@^1.1.0/max?target=denonext": "https://esm.sh/math-intrinsics@1.1.0/max?target=denonext",
+    "https://esm.sh/math-intrinsics@^1.1.0/min?target=denonext": "https://esm.sh/math-intrinsics@1.1.0/min?target=denonext",
+    "https://esm.sh/math-intrinsics@^1.1.0/pow?target=denonext": "https://esm.sh/math-intrinsics@1.1.0/pow?target=denonext",
+    "https://esm.sh/math-intrinsics@^1.1.0/round?target=denonext": "https://esm.sh/math-intrinsics@1.1.0/round?target=denonext",
+    "https://esm.sh/math-intrinsics@^1.1.0/sign?target=denonext": "https://esm.sh/math-intrinsics@1.1.0/sign?target=denonext",
+    "https://esm.sh/object-inspect@^1.13.3?target=denonext": "https://esm.sh/object-inspect@1.13.4?target=denonext",
+    "https://esm.sh/object-inspect@^1.13.4?target=denonext": "https://esm.sh/object-inspect@1.13.4?target=denonext",
+    "https://esm.sh/qs@^6.12.1?target=denonext": "https://esm.sh/qs@6.15.3?target=denonext",
+    "https://esm.sh/side-channel-list@^1.0.1?target=denonext": "https://esm.sh/side-channel-list@1.0.1?target=denonext",
+    "https://esm.sh/side-channel-map@^1.0.1?target=denonext": "https://esm.sh/side-channel-map@1.0.1?target=denonext",
+    "https://esm.sh/side-channel-weakmap@^1.0.2?target=denonext": "https://esm.sh/side-channel-weakmap@1.0.2?target=denonext",
+    "https://esm.sh/side-channel@^1.1.1?target=denonext": "https://esm.sh/side-channel@1.1.1?target=denonext"
+  },
+  "remote": {
+    "https://esm.sh/@medusajs/js-sdk@2.15.5": "e735422a1c92b536e4eccf013070265eecc240fab42944ad8d96f2a41375674e",
+    "https://esm.sh/@medusajs/js-sdk@2.15.5/denonext/js-sdk.mjs": "5456d416a0f54167a0748a1bc882f7075987038537cbf7aff75c9e0524059bab",
+    "https://esm.sh/async-function@1.0.0/denonext/async-function.mjs": "9a68a79494e7318827f19367915e5e8c902d81d395a2a429114371d8f506afd8",
+    "https://esm.sh/async-function@1.0.0?target=denonext": "c5e89ac5310741350e80c75eb1ff0c24bdaa16db5bf0f9181fceea7e3bca763e",
+    "https://esm.sh/async-generator-function@1.0.0/denonext/async-generator-function.mjs": "c7d6e6484a0083577a002c3114e08d84762b6f74327c89cd0129226cefd7436a",
+    "https://esm.sh/async-generator-function@1.0.0?target=denonext": "7b92d0f159fcd05e4cb37faf06fe4d83333517287a9fd3fa1c3dfa34bfa99891",
+    "https://esm.sh/call-bind-apply-helpers@1.0.2/denonext/actualApply.mjs": "e40dd22950f5eb996a325283de44db908753de3396f81ca4b4b186809ec7404b",
+    "https://esm.sh/call-bind-apply-helpers@1.0.2/denonext/call-bind-apply-helpers.mjs": "1c096a11476850297224ad825a8e505c23fcc555a8474e929897f8d799fef30b",
+    "https://esm.sh/call-bind-apply-helpers@1.0.2/denonext/functionApply.mjs": "20d90adbc9be9d9b51fe4fe1019f8bd1d0823f27a2557eed275b9e44c07260c5",
+    "https://esm.sh/call-bind-apply-helpers@1.0.2/denonext/functionCall.mjs": "b36700f863bccd6667f66bfdc7cd9a252129cb203bf5eef59bf29046b9da1467",
+    "https://esm.sh/call-bind-apply-helpers@1.0.2/denonext/reflectApply.mjs": "ad4d25d2a301d5d1701b908c50aa229ff4b5e62f05136d3828f1a26d5dc901f6",
+    "https://esm.sh/call-bind-apply-helpers@1.0.2/functionApply?target=denonext": "62c4f7ef478c97ef7b1ba0e303d61df3cb4a1df4317b606e43b655f0e4219c43",
+    "https://esm.sh/call-bind-apply-helpers@1.0.2/functionCall?target=denonext": "4366685652c948d1c2ca5264d496bb739f52ee5860950a1496e5214759135cc8",
+    "https://esm.sh/call-bind-apply-helpers@1.0.2?target=denonext": "905e972ffcd24bdbceda3bc3208a2102b1ba8ebc2e74e55e42433ad17e1e455e",
+    "https://esm.sh/call-bound@1.0.4/denonext/call-bound.mjs": "08fb5feeb1c0e871cfd19912759ea62b7023bac1d443ffb498f3968082bb3711",
+    "https://esm.sh/call-bound@1.0.4?target=denonext": "8861d775f1c2f685b8985662bfc0eb9037cef7c41c7ee39ae49306662933cc67",
+    "https://esm.sh/dunder-proto@1.0.1/denonext/get.mjs": "8249c9d4dfb0c1f5ee60df6588c77153a4da927b2759e7059b4124c69a8e9223",
+    "https://esm.sh/dunder-proto@1.0.1/get?target=denonext": "13d001daa54e39c69fe8034e0f54ecf326c1b44fcdf005b47a16087c535ee15e",
+    "https://esm.sh/es-object-atoms@1.1.2/denonext/es-object-atoms.mjs": "ee93139185ac5d3b1975c2d5e07775f24f0193b6ffae0ea7d4c87c88941a692d",
+    "https://esm.sh/es-object-atoms@1.1.2?target=denonext": "709a454851c0cec303599eaf7581cc26e4e7668a57c224c589a74a78235bc362",
+    "https://esm.sh/fetch-event-stream@0.1.6/denonext/fetch-event-stream.mjs": "363baf4f75d167dcae28c4938695e60a7fa9c50a1900e3d837bf58eb5856f641",
+    "https://esm.sh/fetch-event-stream@0.1.6?target=denonext": "4cc241998758b26b7f0f59265060fa0956c667ba8d95b7b91100c28205a5bc6a",
+    "https://esm.sh/generator-function@2.0.1/denonext/generator-function.mjs": "c0830dd65531f61823dd69e7d9f8fedace61f5810aa3ef4a47c876638ccce5a2",
+    "https://esm.sh/generator-function@2.0.1?target=denonext": "d69b75b5af8feab1b72504ae1c088a112345997bc2fb03e78bc4b5cc2c717b30",
+    "https://esm.sh/get-intrinsic@1.3.1/denonext/get-intrinsic.mjs": "af07ca16f714e1faaca241d5f136cae8e6d8300dc1cfcee3d2b670008fcfd579",
+    "https://esm.sh/get-intrinsic@1.3.1?target=denonext": "e293e28f884cf6eb97da776907dd175a9b20a072d4b90898b590d7a156449f72",
+    "https://esm.sh/get-proto@1.0.1/Object.getPrototypeOf?target=denonext": "07ea2fdda9026eb3b7e18eff95a1314a82db3b37efd0e4a1b7bd91c454bfd492",
+    "https://esm.sh/get-proto@1.0.1/Reflect.getPrototypeOf?target=denonext": "08346568b8d1b2532dfff0affbb99b0400960313cb1b350969f9ca1f889ac700",
+    "https://esm.sh/get-proto@1.0.1/denonext/Object.getPrototypeOf.mjs": "d62989d14e99b23a7604030f5b2c176b55067bd790d9056fd7b8a7f324c13c62",
+    "https://esm.sh/get-proto@1.0.1/denonext/Reflect.getPrototypeOf.mjs": "4b884fb35dbdc6b2a67708f195cf46435514a7eb3930578453176aafe59d49fe",
+    "https://esm.sh/get-proto@1.0.1/denonext/get-proto.mjs": "0e4ddb145c883b3f941aeba555feb48b9f177838d070449782265daf59b77377",
+    "https://esm.sh/get-proto@1.0.1?target=denonext": "fa3e52250f16f485da729565f1f41dcbb23edeb64420db0146e374cc835c9b04",
+    "https://esm.sh/math-intrinsics@1.1.0/abs?target=denonext": "b43b9b3996b29cda49a1ad6d71b876095144b3252c761b4338e8870e5073542e",
+    "https://esm.sh/math-intrinsics@1.1.0/denonext/abs.mjs": "08304368394a36ee89a52def8a533da1f7c602891647a3e10543a8bbdb746c8b",
+    "https://esm.sh/math-intrinsics@1.1.0/denonext/floor.mjs": "c5e41bb95fa47641ca012faa0a093eef6401d3ace4479a85e39cf726eb184785",
+    "https://esm.sh/math-intrinsics@1.1.0/denonext/isNaN.mjs": "4c0aa9576873f1a60fc724bf6a7959ae3eb30e6b002aa3a94a00f6d071ae4fb2",
+    "https://esm.sh/math-intrinsics@1.1.0/denonext/max.mjs": "d7b63113695c5fef18e6c505fb0db439cefefe5d6578283207bbed54287c53e9",
+    "https://esm.sh/math-intrinsics@1.1.0/denonext/min.mjs": "445c0cbc6acecab1076657ce2b3ce8783b6bd7ec638b76b128dae98a92a9876a",
+    "https://esm.sh/math-intrinsics@1.1.0/denonext/pow.mjs": "b15d61336938ae7d84cd9e223509cb576cc2b89a34ec678889c6cdc82bfdd45c",
+    "https://esm.sh/math-intrinsics@1.1.0/denonext/round.mjs": "a96681000e62bc8c0ff3582a77981fc88fa3034ed5bb85b3e1a15047eeb954b6",
+    "https://esm.sh/math-intrinsics@1.1.0/denonext/sign.mjs": "323a0314efc3a9892beebf5cdd3b6a1d71986821b58548b3a593f8103e4c49b0",
+    "https://esm.sh/math-intrinsics@1.1.0/floor?target=denonext": "58bd34b24e7c69b79e09243ed99bf0aa35e0423524c5d6f3986d46f72b19cdab",
+    "https://esm.sh/math-intrinsics@1.1.0/max?target=denonext": "67e6a93d9f2dd0eb70967013abd67be262b7651e05c4384c9899621ed29db5bb",
+    "https://esm.sh/math-intrinsics@1.1.0/min?target=denonext": "869cb45f08e5642671cb4e0078b73fae5e767656e7ab86a208ca721d67b42fb1",
+    "https://esm.sh/math-intrinsics@1.1.0/pow?target=denonext": "4f42df7a6c0593efdb1edb840affe3a464884ac3287fa18b03810021ee55a5fb",
+    "https://esm.sh/math-intrinsics@1.1.0/round?target=denonext": "635d454d1f3fe901ab84dc7508ca8ba90825085b051278f083986ab8d763e675",
+    "https://esm.sh/math-intrinsics@1.1.0/sign?target=denonext": "67eede9463cdb90393f9e449e8d6d59283db42ff1793fc381292a5612e535cfe",
+    "https://esm.sh/object-inspect@1.13.4/denonext/object-inspect.mjs": "45c312125d1f5469db2840085ce40fa3fbaab81bebcb4b2f79153f9eeaa05230",
+    "https://esm.sh/object-inspect@1.13.4?target=denonext": "426a13b7cd2fb610060e1d943f1ae802ef3873c2055b80dd75b39fddcb5b91f9",
+    "https://esm.sh/qs@6.15.3/denonext/qs.mjs": "9536c4e03068103a1d933ced27cb887a9ef44f52543bd1ab2566f1e8477a2e16",
+    "https://esm.sh/qs@6.15.3?target=denonext": "d4ae6692651fa1b2a6473cf1e0ef06c714a110069ed2fa5dd31312c2908423ca",
+    "https://esm.sh/side-channel-list@1.0.1/denonext/side-channel-list.mjs": "c5645369dabde028779a14220cbf07fd306949004ce0b96ceca37b9c0a67477d",
+    "https://esm.sh/side-channel-list@1.0.1?target=denonext": "048acf95bc6b0fbc223931d6c49be2d929d9a6d3ebde2ab9897fae38df154cc0",
+    "https://esm.sh/side-channel-map@1.0.1/denonext/side-channel-map.mjs": "5c6c38348826aa2b41eb5654fff235ae06a06c6f0b02ad736b6f226704d7043a",
+    "https://esm.sh/side-channel-map@1.0.1?target=denonext": "8b59be4ffd58b5654971b600ca894755e9277c9be88dbfcc5673b2e85d8d30ec",
+    "https://esm.sh/side-channel-weakmap@1.0.2/denonext/side-channel-weakmap.mjs": "5bee9551eadb611a71937950a614bd9d46ca5139afbb20e28321c1704953b367",
+    "https://esm.sh/side-channel-weakmap@1.0.2?target=denonext": "f6ca783896c64a8ca09f483a7809e053e4e31b1569b5c5251ed5813561330dfe",
+    "https://esm.sh/side-channel@1.1.1/denonext/side-channel.mjs": "4128535b2cbb605d142594272a90adef511c250130167eba0e06b0168a03b556",
+    "https://esm.sh/side-channel@1.1.1?target=denonext": "95435f8b4cfb2827b11a0a384b7a5a82cf42e7d54435276084aef40717129eac"
+  },
+  "workspace": {
+    "dependencies": [
+      "jsr:@fresh/core@^2.3.3",
+      "jsr:@fresh/plugin-vite@^1.0.8",
+      "jsr:@std/front-matter@^1.0.9",
+      "npm:@medusajs/types@^2.15.5",
+      "npm:@preact/signals@^2.9.0",
+      "npm:@tailwindcss/typography@~0.5.16",
+      "npm:@tailwindcss/vite@^4.1.12",
+      "npm:@types/babel__core@^7.20.5",
+      "npm:@types/marked@6",
+      "npm:lucide-preact@*",
+      "npm:marked@^14.1.2",
+      "npm:preact-render-to-string@^6.5.11",
+      "npm:preact@10.29.1",
+      "npm:preact@^10.29.1",
+      "npm:tailwindcss@^4.1.10",
+      "npm:vite@^7.1.3"
+    ],
+    "packageJson": {
+      "dependencies": [
+        "npm:@google/genai@^2.4.0",
+        "npm:@tailwindcss/vite@^4.1.14",
+        "npm:@types/express@^4.17.21",
+        "npm:@types/node@^22.14.0",
+        "npm:@vitejs/plugin-react@^5.0.4",
+        "npm:autoprefixer@^10.4.21",
+        "npm:deno-bin@2.1.0",
+        "npm:dotenv@^17.2.3",
+        "npm:esbuild@0.25",
+        "npm:express@^4.21.2",
+        "npm:lucide-react@0.546",
+        "npm:motion@^12.23.24",
+        "npm:react-dom@^19.0.1",
+        "npm:react@^19.0.1",
+        "npm:tailwindcss@^4.1.14",
+        "npm:tsx@^4.21.0",
+        "npm:typescript@~5.8.2",
+        "npm:vite@^6.2.0"
+      ]
+    }
+  }
+}

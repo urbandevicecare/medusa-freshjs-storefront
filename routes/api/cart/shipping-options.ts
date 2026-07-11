@@ -41,7 +41,13 @@ export const handler = define.handlers({
         .listCartOptions({ cart_id: cartId }, reqHeaders);
 
       try {
-        await Deno.writeTextFile("/tmp/shipping_debug.log", `Cart Update Payload: ${JSON.stringify(body.shipping_address)}\nRaw Options: ${JSON.stringify(rawOptions)}\n\n`, { append: true });
+        await Deno.writeTextFile(
+          "/tmp/shipping_debug.log",
+          `Cart Update Payload: ${
+            JSON.stringify(body.shipping_address)
+          }\nRaw Options: ${JSON.stringify(rawOptions)}\n\n`,
+          { append: true },
+        );
       } catch (e) {}
 
       // Relax the filter just in case amount is null for calculated options
@@ -59,10 +65,13 @@ export const handler = define.handlers({
       );
     } catch (e: unknown) {
       console.error("Update address error:", e);
-      return new Response(JSON.stringify({ error: "Failed to update address and fetch options" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Failed to update address and fetch options" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
     }
   },
 });

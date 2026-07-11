@@ -46,7 +46,10 @@ export default define.page(async function ProductPage(ctx) {
 
       if (token) {
         try {
-          const { customer } = await medusa.store.customer.retrieve({}, headers);
+          const { customer } = await medusa.store.customer.retrieve(
+            {},
+            headers,
+          );
           if (customer && customer.id) {
             (product as any).userRating = await getUserRating(
               product.id!,

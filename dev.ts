@@ -2,6 +2,7 @@
 
 import "npm:preact@10.29.1/jsx-runtime";
 import "npm:preact@10.29.1/jsx-dev-runtime";
+import "preact/jsx-runtime";
 import { Builder } from "fresh/dev";
 
 const builder = new Builder();
