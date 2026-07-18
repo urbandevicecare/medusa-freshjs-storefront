@@ -1,4 +1,4 @@
-import { useEffect, useState } from "preact/hooks";
+import { useState, useEffect } from "preact/hooks";
 import { createPortal } from "preact/compat";
 import { Star } from "lucide-preact";
 
@@ -125,21 +125,19 @@ export default function StarRatingIsland({
           {count > 0 && `(${count})`}
         </span>
       </div>
-
+      
       {/* Snackbar Notification (Portaled to body to escape transform trapping) */}
       {typeof document !== "undefined" && createPortal(
         <div
           class={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] transition-all duration-300 ease-in-out ${
-            isVisible
-              ? "opacity-100 translate-y-0"
-              : "opacity-0 translate-y-4 pointer-events-none"
+            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
           }`}
         >
           <div class="bg-slate-100 text-slate-800 border border-slate-200 px-5 py-2.5 rounded-lg shadow-md text-sm font-medium tracking-wide whitespace-nowrap">
             {error}
           </div>
         </div>,
-        document.body,
+        document.body
       )}
     </div>
   );

@@ -1,7 +1,7 @@
 import { define } from "../../lib/utils.ts";
 import { page } from "fresh";
 import { Head } from "fresh/runtime";
-import { getStoreDomain, STORE_NAME } from "../../lib/utils.ts";
+import { STORE_DOMAIN, STORE_NAME } from "../../lib/utils.ts";
 
 export const handler = define.handlers({
   GET(ctx) {
@@ -97,7 +97,7 @@ export default define.page(function CookiesPage(props) {
       <h2 class="text-xl font-semibold mt-8 mb-4">6. Contact Us</h2>
       <p class="text-gray-700 mb-4">
         If you have any questions about our use of cookies, please contact us at
-        privacy@{getStoreDomain()}.
+        privacy@{STORE_DOMAIN}.
       </p>
     </div>
   );

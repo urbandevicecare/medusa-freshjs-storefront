@@ -1,7 +1,7 @@
 import { define } from "../../lib/utils.ts";
 import { page } from "fresh";
 import { Head } from "fresh/runtime";
-import { getStoreDomain, STORE_NAME } from "../../lib/utils.ts";
+import { STORE_DOMAIN, STORE_NAME } from "../../lib/utils.ts";
 
 export const handler = define.handlers({
   GET(ctx) {
@@ -62,10 +62,10 @@ export default define.page(function CareersPage(props) {
         Don't see a position that fits? We're always open to meeting great
         people. Send your CV and a brief introduction to{" "}
         <a
-          href={`mailto:careers@${getStoreDomain()}`}
+          href={`mailto:careers@${STORE_DOMAIN}`}
           class="text-slate-900 hover:underline font-medium"
         >
-          careers@{getStoreDomain()}
+          careers@{STORE_DOMAIN}
         </a>.
       </p>
     </div>

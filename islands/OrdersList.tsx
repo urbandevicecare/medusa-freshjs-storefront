@@ -38,7 +38,7 @@ export function OrdersList(
         });
         const total = formatAmount(
           order.total || 0,
-          order.currency_code?.toUpperCase() || "USD",
+          order.currency_code?.toUpperCase() || "USD"
         );
 
         return (

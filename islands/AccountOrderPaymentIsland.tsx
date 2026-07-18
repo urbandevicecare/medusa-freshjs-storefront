@@ -18,9 +18,7 @@ export default function AccountOrderPaymentIsland({
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState("");
   const [payAmount, setPayAmount] = useState(remainingBalanceRaw.toString());
-  const [paystackSession, setPaystackSession] = useState<
-    { accessCode: string } | null
-  >(null);
+  const [paystackSession, setPaystackSession] = useState<{ accessCode: string } | null>(null);
 
   if (remainingBalanceRaw <= 0) {
     return null;
@@ -31,9 +29,7 @@ export default function AccountOrderPaymentIsland({
     setIsProcessing(true);
     setError("");
 
-    const amountToSend = payAmount
-      ? parseFloat(payAmount)
-      : remainingBalanceRaw;
+    const amountToSend = payAmount ? parseFloat(payAmount) : remainingBalanceRaw;
 
     if (isNaN(amountToSend) || amountToSend <= 0) {
       setError("Please enter a valid amount.");
@@ -63,16 +59,16 @@ export default function AccountOrderPaymentIsland({
       }
 
       const data = await res.json();
-      const accessCode = data.paymentSession?.paystackTxAccessCode ||
-        data.paymentSession?.accessCode ||
-        data.paymentSession?.access_code;
-
+      const accessCode = data.paymentSession?.paystackTxAccessCode || 
+                         data.paymentSession?.accessCode || 
+                         data.paymentSession?.access_code;
+                         
       if (!accessCode) {
         setError("Failed to initialize Paystack payment. Access code missing.");
         setIsProcessing(false);
         return;
       }
-
+      
       // Trigger the Paystack popup
       setPaystackSession({ accessCode });
     } catch (err) {
@@ -110,9 +106,7 @@ export default function AccountOrderPaymentIsland({
         </label>
         <div class="relative">
           <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <span class="text-gray-500 sm:text-sm">
-              {currencyCode.toUpperCase()}
-            </span>
+            <span class="text-gray-500 sm:text-sm">{currencyCode.toUpperCase()}</span>
           </div>
           <input
             type="number"
@@ -132,21 +126,14 @@ export default function AccountOrderPaymentIsland({
         disabled={isProcessing}
         class="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-70 disabled:hover:bg-blue-600"
       >
-        {isProcessing
-          ? (
-            <>
-              <Loader2 class="w-5 h-5 animate-spin" />
-              Processing...
-            </>
-          )
-          : (
-            `Pay ${
-              formatAmount(
-                payAmount ? parseFloat(payAmount) : remainingBalanceRaw,
-                currencyCode,
-              )
-            }`
-          )}
+        {isProcessing ? (
+          <>
+            <Loader2 class="w-5 h-5 animate-spin" />
+            Processing...
+          </>
+        ) : (
+          `Pay ${formatAmount(payAmount ? parseFloat(payAmount) : remainingBalanceRaw, currencyCode)}`
+        )}
       </button>
 
       {/* Hidden Paystack popup trigger */}

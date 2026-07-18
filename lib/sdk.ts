@@ -9,8 +9,8 @@ const isProd = globalThis.Deno?.env?.get("DENO_ENV") === "production" ||
   globalThis.Deno?.env?.get("NODE_ENV") === "production";
 
 if (isProd && (!PUBLISHABLE_KEY || !BACKEND_URL)) {
-  console.warn(
-    "WARNING: MEDUSA_PUBLISHABLE_KEY and MEDUSA_BACKEND_URL environment variables should be set in production."
+  throw new Error(
+    "CRITICAL: MEDUSA_PUBLISHABLE_KEY and MEDUSA_BACKEND_URL environment variables must be set in production.",
   );
 }
 

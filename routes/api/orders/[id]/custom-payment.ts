@@ -26,8 +26,7 @@ export const handler = define.handlers({
       }
 
       // Forward request to Medusa backend
-      const backendUrl = Deno.env.get("MEDUSA_BACKEND_URL") ||
-        "http://localhost:9000";
+      const backendUrl = Deno.env.get("MEDUSA_BACKEND_URL") || "http://localhost:9000";
       const publishableKey = Deno.env.get("MEDUSA_PUBLISHABLE_KEY") || "";
       const res = await fetch(`${backendUrl}/store/paystack/custom-payment`, {
         method: "POST",
@@ -45,15 +44,10 @@ export const handler = define.handlers({
       const data = await res.json();
 
       if (!res.ok) {
-        return new Response(
-          JSON.stringify({
-            error: data.message || "Failed to initiate custom payment.",
-          }),
-          {
-            status: res.status,
-            headers: { "Content-Type": "application/json" },
-          },
-        );
+        return new Response(JSON.stringify({ error: data.message || "Failed to initiate custom payment." }), {
+          status: res.status,
+          headers: { "Content-Type": "application/json" },
+        });
       }
 
       return new Response(JSON.stringify(data), {
@@ -64,9 +58,7 @@ export const handler = define.handlers({
       console.error("Custom payment error:", e);
       return new Response(
         JSON.stringify({
-          error: e instanceof Error
-            ? e.message
-            : "Failed to initiate custom payment.",
+          error: e instanceof Error ? e.message : "Failed to initiate custom payment.",
         }),
         {
           status: 500,

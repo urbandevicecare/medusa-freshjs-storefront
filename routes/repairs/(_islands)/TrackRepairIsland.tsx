@@ -38,15 +38,11 @@ export default function TrackRepairIsland({
         setTimeout(() => {
           if (initialAction === "approve") {
             if (confirm("Do you want to confirm approval for this repair?")) {
-              processApproval(true, token);
+               processApproval(true, token);
             }
           } else if (initialAction === "reject") {
-            if (
-              confirm(
-                "Are you sure you want to decline this repair? This will cancel the ticket.",
-              )
-            ) {
-              processApproval(false, token);
+            if (confirm("Are you sure you want to decline this repair? This will cancel the ticket.")) {
+               processApproval(false, token);
             }
           }
         }, 500);
@@ -81,15 +77,11 @@ export default function TrackRepairIsland({
         setTimeout(() => {
           if (initialAction === "approve") {
             if (confirm("Do you want to confirm approval for this repair?")) {
-              processApproval(true, null, data.repair_ticket.id);
+               processApproval(true, null, data.repair_ticket.id);
             }
           } else if (initialAction === "reject") {
-            if (
-              confirm(
-                "Are you sure you want to decline this repair? This will cancel the ticket.",
-              )
-            ) {
-              processApproval(false, null, data.repair_ticket.id);
+            if (confirm("Are you sure you want to decline this repair? This will cancel the ticket.")) {
+               processApproval(false, null, data.repair_ticket.id);
             }
           }
         }, 500);
@@ -101,16 +93,14 @@ export default function TrackRepairIsland({
     }
   };
 
-  const processApproval = async (
-    approved: boolean,
-    token: string | null = null,
-    ticketId: string | null = null,
-  ) => {
+  const processApproval = async (approved: boolean, token: string | null = null, ticketId: string | null = null) => {
     try {
       const targetUrl = token
         ? `/api/repairs/approve`
         : `/api/repairs/${ticketId || ticket?.id}/approve`;
-      const bodyData = token ? { token, approved } : { approved };
+      const bodyData = token
+        ? { token, approved }
+        : { approved };
 
       const response = await fetch(targetUrl, {
         method: "POST",
@@ -119,18 +109,14 @@ export default function TrackRepairIsland({
       });
 
       if (response.ok) {
-        alert(
-          approved
-            ? "Repair approved! Work will begin shortly."
-            : "Repair has been declined and cancelled.",
-        );
+        alert(approved ? "Repair approved! Work will begin shortly." : "Repair has been declined and cancelled.");
         if (token || initialToken) handleTokenSearch(token || initialToken!);
         else handleSearch(new Event("submit") as any);
       } else {
-        throw new Error(`Failed to ${approved ? "approve" : "decline"} repair`);
+        throw new Error(`Failed to ${approved ? 'approve' : 'decline'} repair`);
       }
     } catch (err) {
-      alert(`Failed to ${approved ? "approve" : "decline"} repair`);
+      alert(`Failed to ${approved ? 'approve' : 'decline'} repair`);
     }
   };
 
@@ -815,11 +801,7 @@ export default function TrackRepairIsland({
                 </button>
                 <button
                   onClick={() => {
-                    if (
-                      confirm(
-                        "Are you sure you want to decline this repair? This will cancel the ticket.",
-                      )
-                    ) {
+                    if (confirm("Are you sure you want to decline this repair? This will cancel the ticket.")) {
                       processApproval(false, initialToken, ticket.id);
                     }
                   }}

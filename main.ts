@@ -32,20 +32,3 @@ app.use(exampleLoggerMiddleware);
 
 // Include file-system based routes here
 app.fsRoutes();
-
-// Provide a default export for Deno Deploy
-// In Deno Deploy, the user should ideally configure the entrypoint to _fresh/server.js
-// But if main.ts is used as the entrypoint, this will serve the compiled app.
-export default {
-  async fetch(req: Request, connInfo: any) {
-    try {
-      // Dynamically import the compiled server (bypassing static analysis)
-      const serverFile = "./_fresh/server.js";
-      const { default: server } = await import(serverFile);
-      return server.fetch(req, connInfo);
-    } catch {
-      // Fallback to the uncompiled app handler
-      return app.handler()(req, connInfo);
-    }
-  },
-};

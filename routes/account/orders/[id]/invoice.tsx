@@ -130,177 +130,175 @@ export default define.page(function InvoicePage(props) {
         class="max-w-[800px] mx-auto p-12 bg-white min-h-screen text-gray-900 font-sans text-sm"
         id="invoice-container"
       >
-        {/* Header */}
-        <div class="flex justify-between items-start mb-8">
-          <div>
-            <div class="mb-4 flex items-center gap-3">
-              <img
-                src="/logo.svg"
-                alt="Logo"
-                class="h-12 w-auto object-contain"
-              />
-            </div>
-            <div class="text-[13px] text-gray-600 leading-snug space-y-0.5">
-              <p class="font-bold text-gray-900 text-sm mb-1">
-                Urban Device Care Ltd
-              </p>
-              <p>Bekim house</p>
-              <p>Westlands crossway Road</p>
-              <p>Nairobi 00800</p>
-              <p>Kenya</p>
-              <p>0115682959</p>
-              <p>info@urbandevicecare.co.uk</p>
-              <p>KRA PIN P052534849N</p>
-            </div>
-          </div>
-          <div class="text-right">
-            <h2 class="text-4xl font-normal text-gray-800 mb-2 tracking-wide uppercase">
-              Invoice
-            </h2>
-            <p class="text-sm font-semibold mb-6 text-gray-700">
-              # INV{getUnifiedOrderNumber(order)}
-            </p>
-
-            <div class="text-[13px] text-gray-600 mb-1">Balance Due</div>
-            <div class="text-lg font-bold text-gray-900">{balanceDue}</div>
-          </div>
-        </div>
-
-        <div class="mt-8 mb-6 grid grid-cols-2 gap-8">
-          <div class="pt-2">
-            <p class="font-bold text-gray-900 text-sm">{customerName}</p>
-          </div>
-          <div class="flex justify-end">
-            <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-[13px] text-right w-64">
-              <div class="text-gray-600">Invoice Date :</div>
-              <div class="text-gray-900">{date}</div>
-
-              <div class="text-gray-600">Terms :</div>
-              <div class="text-gray-900">Due on Receipt</div>
-
-              <div class="text-gray-600">Due Date :</div>
-              <div class="text-gray-900">{date}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Items Table */}
-        <table class="w-full mb-8 text-[13px]">
-          <thead class="bg-[#404040] text-white">
-            <tr>
-              <th class="py-2.5 px-3 font-normal text-center w-12">#</th>
-              <th class="py-2.5 px-3 font-normal text-left">Description</th>
-              <th class="py-2.5 px-3 font-normal text-center w-24">Qty</th>
-              <th class="py-2.5 px-3 font-normal text-right w-32">Rate</th>
-              <th class="py-2.5 px-3 font-normal text-right w-32">Amount</th>
-            </tr>
-          </thead>
-          <tbody class="text-gray-800">
-            {order.items?.map((item: any, idx: number) => (
-              <tr key={item.id} class="border-b border-gray-200">
-                <td class="py-3.5 px-3 text-center">{idx + 1}</td>
-                <td class="py-3.5 px-3">
-                  {item.title}
-                  {item.variant?.title && item.variant.title !== "Default" &&
-                    ` - ${item.variant.title}`}
-                </td>
-                <td class="py-3.5 px-3 text-center">{item.quantity}.00</td>
-                <td class="py-3.5 px-3 text-right">
-                  {formatAmount(item.unit_price, currencyCode)}
-                </td>
-                <td class="py-3.5 px-3 text-right">
-                  {formatAmount(item.unit_price * item.quantity, currencyCode)}
-                </td>
-              </tr>
-            ))}
-            {/* Shipping row if applicable */}
-            {(order.shipping_total || 0) > 0 && (
-              <tr class="border-b border-gray-200">
-                <td class="py-3.5 px-3 text-center">
-                  {order.items?.length ? order.items.length + 1 : 1}
-                </td>
-                <td class="py-3.5 px-3">Shipping</td>
-                <td class="py-3.5 px-3 text-center">1.00</td>
-                <td class="py-3.5 px-3 text-right">{shipping}</td>
-                <td class="py-3.5 px-3 text-right">{shipping}</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-
-        {/* Totals */}
-        <div class="flex justify-end mb-16">
-          <div class="w-[320px]">
-            <div class="flex justify-between py-2 text-[13px]">
-              <span class="font-bold text-gray-900 text-right flex-1 pr-6">
-                Sub Total
-              </span>
-              <span class="text-right w-32">{subtotal}</span>
-            </div>
-
-            <div class="flex justify-between py-2 text-[13px] border-t border-b border-gray-200 my-1">
-              <span class="font-bold text-gray-900 text-right flex-1 pr-6">
-                Total
-              </span>
-              <span class="font-bold text-gray-900 text-right w-32">
-                {total}
-              </span>
-            </div>
-
-            <div class="flex justify-between py-2 text-[13px]">
-              <span class="text-gray-600 text-right flex-1 pr-6">
-                Payment Made
-              </span>
-              <span class="text-red-500 text-right w-32">
-                (-) {capturedAmount}
-              </span>
-            </div>
-
-            <div class="flex justify-between py-2.5 px-2 text-[13px] bg-gray-100 mt-2">
-              <span class="font-bold text-gray-900 text-right flex-1 pr-4">
-                Balance Due
-              </span>
-              <span class="font-bold text-gray-900 text-right w-32">
-                {balanceDue}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer / Notes */}
-        <div class="flex justify-between items-end">
-          <div class="text-[13px] text-gray-800 space-y-1">
-            <p>Thanks for your business.</p>
-          </div>
-          <div class="flex flex-col items-center gap-1">
+      {/* Header */}
+      <div class="flex justify-between items-start mb-8">
+        <div>
+          <div class="mb-4 flex items-center gap-3">
             <img
-              src={qrCodeUrl}
-              alt="Order QR Code"
-              class="w-16 h-16 object-contain mix-blend-multiply"
+              src="/logo.svg"
+              alt="Logo"
+              class="h-12 w-auto object-contain"
             />
-            <span class="text-[10px] text-gray-400 uppercase tracking-wider">
-              View Online
+          </div>
+          <div class="text-[13px] text-gray-600 leading-snug space-y-0.5">
+            <p class="font-bold text-gray-900 text-sm mb-1">
+              Urban Device Care Ltd
+            </p>
+            <p>Bekim house</p>
+            <p>Westlands crossway Road</p>
+            <p>Nairobi 00800</p>
+            <p>Kenya</p>
+            <p>0115682959</p>
+            <p>info@urbandevicecare.co.uk</p>
+            <p>KRA PIN P052534849N</p>
+          </div>
+        </div>
+        <div class="text-right">
+          <h2 class="text-4xl font-normal text-gray-800 mb-2 tracking-wide uppercase">
+            Invoice
+          </h2>
+          <p class="text-sm font-semibold mb-6 text-gray-700">
+            # INV{getUnifiedOrderNumber(order)}
+          </p>
+
+          <div class="text-[13px] text-gray-600 mb-1">Balance Due</div>
+          <div class="text-lg font-bold text-gray-900">{balanceDue}</div>
+        </div>
+      </div>
+
+      <div class="mt-8 mb-6 grid grid-cols-2 gap-8">
+        <div class="pt-2">
+          <p class="font-bold text-gray-900 text-sm">{customerName}</p>
+        </div>
+        <div class="flex justify-end">
+          <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-[13px] text-right w-64">
+            <div class="text-gray-600">Invoice Date :</div>
+            <div class="text-gray-900">{date}</div>
+
+            <div class="text-gray-600">Terms :</div>
+            <div class="text-gray-900">Due on Receipt</div>
+
+            <div class="text-gray-600">Due Date :</div>
+            <div class="text-gray-900">{date}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Items Table */}
+      <table class="w-full mb-8 text-[13px]">
+        <thead class="bg-[#404040] text-white">
+          <tr>
+            <th class="py-2.5 px-3 font-normal text-center w-12">#</th>
+            <th class="py-2.5 px-3 font-normal text-left">Description</th>
+            <th class="py-2.5 px-3 font-normal text-center w-24">Qty</th>
+            <th class="py-2.5 px-3 font-normal text-right w-32">Rate</th>
+            <th class="py-2.5 px-3 font-normal text-right w-32">Amount</th>
+          </tr>
+        </thead>
+        <tbody class="text-gray-800">
+          {order.items?.map((item: any, idx: number) => (
+            <tr key={item.id} class="border-b border-gray-200">
+              <td class="py-3.5 px-3 text-center">{idx + 1}</td>
+              <td class="py-3.5 px-3">
+                {item.title}
+                {item.variant?.title && item.variant.title !== "Default" &&
+                  ` - ${item.variant.title}`}
+              </td>
+              <td class="py-3.5 px-3 text-center">{item.quantity}.00</td>
+              <td class="py-3.5 px-3 text-right">
+                {formatAmount(item.unit_price, currencyCode)}
+              </td>
+              <td class="py-3.5 px-3 text-right">
+                {formatAmount(item.unit_price * item.quantity, currencyCode)}
+              </td>
+            </tr>
+          ))}
+          {/* Shipping row if applicable */}
+          {(order.shipping_total || 0) > 0 && (
+            <tr class="border-b border-gray-200">
+              <td class="py-3.5 px-3 text-center">
+                {order.items?.length ? order.items.length + 1 : 1}
+              </td>
+              <td class="py-3.5 px-3">Shipping</td>
+              <td class="py-3.5 px-3 text-center">1.00</td>
+              <td class="py-3.5 px-3 text-right">{shipping}</td>
+              <td class="py-3.5 px-3 text-right">{shipping}</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+
+      {/* Totals */}
+      <div class="flex justify-end mb-16">
+        <div class="w-[320px]">
+          <div class="flex justify-between py-2 text-[13px]">
+            <span class="font-bold text-gray-900 text-right flex-1 pr-6">
+              Sub Total
+            </span>
+            <span class="text-right w-32">{subtotal}</span>
+          </div>
+
+          <div class="flex justify-between py-2 text-[13px] border-t border-b border-gray-200 my-1">
+            <span class="font-bold text-gray-900 text-right flex-1 pr-6">
+              Total
+            </span>
+            <span class="font-bold text-gray-900 text-right w-32">{total}</span>
+          </div>
+
+          <div class="flex justify-between py-2 text-[13px]">
+            <span class="text-gray-600 text-right flex-1 pr-6">
+              Payment Made
+            </span>
+            <span class="text-red-500 text-right w-32">
+              (-) {capturedAmount}
+            </span>
+          </div>
+
+          <div class="flex justify-between py-2.5 px-2 text-[13px] bg-gray-100 mt-2">
+            <span class="font-bold text-gray-900 text-right flex-1 pr-4">
+              Balance Due
+            </span>
+            <span class="font-bold text-gray-900 text-right w-32">
+              {balanceDue}
             </span>
           </div>
         </div>
+      </div>
 
-        <div class="mt-20 pt-4 border-t border-gray-200 text-xs text-gray-500 flex justify-end items-center uppercase tracking-wider">
-          <span>1</span>
+      {/* Footer / Notes */}
+      <div class="flex justify-between items-end">
+        <div class="text-[13px] text-gray-800 space-y-1">
+          <p>Thanks for your business.</p>
         </div>
+        <div class="flex flex-col items-center gap-1">
+          <img
+            src={qrCodeUrl}
+            alt="Order QR Code"
+            class="w-16 h-16 object-contain mix-blend-multiply"
+          />
+          <span class="text-[10px] text-gray-400 uppercase tracking-wider">
+            View Online
+          </span>
+        </div>
+      </div>
 
-        {/* Auto-print script */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
+      <div class="mt-20 pt-4 border-t border-gray-200 text-xs text-gray-500 flex justify-end items-center uppercase tracking-wider">
+        <span>1</span>
+      </div>
+
+      {/* Auto-print script */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
           window.onload = function() {
             setTimeout(function() {
               window.print();
             }, 500);
           };
         `,
-          }}
-        />
-      </div>
+        }}
+      />
+    </div>
     </>
   );
 });

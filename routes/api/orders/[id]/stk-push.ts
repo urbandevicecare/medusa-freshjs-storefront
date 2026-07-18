@@ -19,18 +19,14 @@ export const handler = define.handlers({
       const { phone, amount } = body;
 
       if (!phone) {
-        return new Response(
-          JSON.stringify({ error: "Phone number is required." }),
-          {
-            status: 400,
-            headers: { "Content-Type": "application/json" },
-          },
-        );
+        return new Response(JSON.stringify({ error: "Phone number is required." }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        });
       }
 
       // Forward request to Medusa backend
-      const backendUrl = Deno.env.get("MEDUSA_BACKEND_URL") ||
-        "http://localhost:9000";
+      const backendUrl = Deno.env.get("MEDUSA_BACKEND_URL") || "http://localhost:9000";
       const publishableKey = Deno.env.get("MEDUSA_PUBLISHABLE_KEY") || "";
       const res = await fetch(`${backendUrl}/store/paystack/stk-push`, {
         method: "POST",
@@ -49,15 +45,10 @@ export const handler = define.handlers({
       const data = await res.json();
 
       if (!res.ok) {
-        return new Response(
-          JSON.stringify({
-            error: data.message || "Failed to initiate STK Push.",
-          }),
-          {
-            status: res.status,
-            headers: { "Content-Type": "application/json" },
-          },
-        );
+        return new Response(JSON.stringify({ error: data.message || "Failed to initiate STK Push." }), {
+          status: res.status,
+          headers: { "Content-Type": "application/json" },
+        });
       }
 
       return new Response(JSON.stringify(data), {
@@ -68,9 +59,7 @@ export const handler = define.handlers({
       console.error("STK Push error:", e);
       return new Response(
         JSON.stringify({
-          error: e instanceof Error
-            ? e.message
-            : "Failed to initiate STK Push.",
+          error: e instanceof Error ? e.message : "Failed to initiate STK Push.",
         }),
         {
           status: 500,
