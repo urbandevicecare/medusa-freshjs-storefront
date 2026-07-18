@@ -60,14 +60,8 @@ export default function Checkout({
     setFormValues((prev) => ({ ...prev, [target.name]: target.value }));
   };
 
-  const getDefaultShippingOptionId = (options: any[]) => {
-    if (!options || options.length === 0) return "";
-    const freeOption = options.find((o: any) => o.amount === 0 || (o.name && o.name.toLowerCase().includes("free")));
-    return freeOption ? freeOption.id : options[0].id;
-  };
-
   const [selectedShippingOption, setSelectedShippingOption] = useState<string>(
-    getDefaultShippingOptionId(availableShippingOptions)
+    availableShippingOptions && availableShippingOptions.length > 0 ? availableShippingOptions[0].id : "",
   );
 
   useEffect(() => {
@@ -95,7 +89,7 @@ export default function Checkout({
             if (data.shipping_options.length > 0) {
               setSelectedShippingOption(prev => {
                 if (!data.shipping_options.find((o: any) => o.id === prev)) {
-                  return getDefaultShippingOptionId(data.shipping_options);
+                  return data.shipping_options[0].id;
                 }
                 return prev;
               });
