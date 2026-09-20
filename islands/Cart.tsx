@@ -181,6 +181,7 @@ export default function Cart(
 
         <a
           href="/checkout"
+          f-client-nav={false}
           class="w-full flex items-center justify-center px-6 py-3.5 bg-gray-900 text-white font-medium rounded-xl hover:bg-gray-800 transition-colors shadow-sm"
         >
           Proceed to checkout

@@ -22,6 +22,7 @@ export function AccountNav({ currentPath }: { currentPath: string }) {
             <a
               key={item.name}
               href={item.href}
+              f-client-nav={false}
               class={`text-base transition-colors ${
                 isActive
                   ? "text-gray-900 font-semibold"

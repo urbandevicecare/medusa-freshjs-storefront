@@ -39,7 +39,7 @@ export function Footer({
             <ul class="space-y-2 text-sm text-gray-600">
               {isRepairModuleInstalled && (
                 <li>
-                  <a href="/services/repairs">
+                  <a href="/services/repairs" f-client-nav={false}>
                     Repairs
                   </a>
                 </li>
@@ -109,7 +109,7 @@ export function Footer({
               <p class="text-sm text-gray-600 mb-4">
                 Enter your repair ticket or serial number to check live status.
               </p>
-              <form action="/repairs/track" method="GET" class="flex gap-2">
+              <form action="/repairs/track" method="GET" class="flex gap-2" f-client-nav={false}>
                 <input
                   type="text"
                   name="ticket"

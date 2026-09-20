@@ -17,6 +17,7 @@ export function ProductCard(
   return (
     <a
       href={`/product/${product.handle}`}
+      f-client-nav={false}
       class="group cursor-pointer flex flex-col h-full bg-white border border-gray-200 rounded-2xl p-4 hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
       aria-label={`View details for ${product.title}`}
     >
