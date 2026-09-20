@@ -19,8 +19,10 @@ export async function withCache<T>(
 
   const data = await fetcher();
 
-  // Fire and forget cache update
-  kv.set(key, { value: data, expiresAt: Date.now() + ttlMs });
+  // Fire and forget cache update, but only if we got valid data
+  if (data !== null && data !== undefined) {
+    kv.set(key, { value: data, expiresAt: Date.now() + ttlMs });
+  }
 
   return data;
 }
