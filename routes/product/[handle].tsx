@@ -75,7 +75,6 @@ export default define.page(async function ProductPage(ctx) {
           </p>
           <a
             href="/"
-            f-client-nav
             class="bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors"
           >
             Back to Store

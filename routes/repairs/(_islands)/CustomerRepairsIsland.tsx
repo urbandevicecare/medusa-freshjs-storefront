@@ -99,7 +99,6 @@ export default function CustomerRepairsIsland() {
         <p class="mb-4">You have not booked any device for repair yet.</p>
         <a
           href="/repairs/book"
-          f-client-nav={false}
           class="text-slate-900 hover:underline font-medium"
         >
           Book your first repair

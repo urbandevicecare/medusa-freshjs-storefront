@@ -33,10 +33,7 @@ export default define.page(function BookRepairRoute(props) {
         <meta name="view-transition" content="same-origin" />
       </Head>
       <Partial name="repair-content">
-        <div
-          class="route-container max-w-6xl mx-auto px-4 md:px-8 py-16 md:py-24"
-          f-client-nav={false}
-        >
+        <div class="route-container max-w-6xl mx-auto px-4 md:px-8 py-16 md:py-24">
           <div class="mb-16 border-b border-black pb-8">
             <h1 class="text-5xl md:text-7xl font-[Oswald] uppercase tracking-tighter leading-none text-slate-900 mb-6">
               Book a<br />Repair

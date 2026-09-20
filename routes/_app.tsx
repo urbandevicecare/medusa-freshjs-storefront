@@ -33,7 +33,6 @@ export default define.page(function App({ Component, state }) {
         <meta property="og:type" content="website" />
       </head>
       <body
-        f-client-nav
         f-view-transition
         class={`min-h-screen bg-[#F6F7F8] font-sans text-gray-900 flex flex-col ${
           state?.hideLayout ? "print:bg-white bg-white" : ""

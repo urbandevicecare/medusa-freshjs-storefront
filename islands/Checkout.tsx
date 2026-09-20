@@ -266,7 +266,6 @@ export default function Checkout({
         <p class="text-gray-600 mb-8">Add some items before checking out.</p>
         <a
           href="/"
-          f-client-nav
           class="inline-flex items-center justify-center px-8 py-3 bg-gray-900 text-white font-medium rounded-xl hover:bg-gray-800 transition-colors"
         >
           Start shopping

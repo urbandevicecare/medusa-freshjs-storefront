@@ -204,7 +204,6 @@ export default define.page(function GuidesPage({ state, data }) {
       <div class="mt-16 text-center">
         <a
           href="/services/repairs"
-          f-client-nav
           class="inline-flex items-center justify-center p-4 bg-gray-900 text-white rounded-xl font-bold hover:bg-gray-800 transition-colors"
         >
           Too complicated? Book a Professional Repair Instead

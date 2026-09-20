@@ -186,7 +186,7 @@ export default function TrackRepairIsland({
       const link = document.createElement("a");
       link.href = downloadUrl;
       link.download = `${ticket.ticket_number}-${type}.pdf`;
-      link.setAttribute("f-client-nav", "false"); // Prevent Fresh from intercepting blob: URLs
+      link.setAttribute("", "false"); // Prevent Fresh from intercepting blob: URLs
       link.target = "_blank";
       document.body.appendChild(link);
       link.click();

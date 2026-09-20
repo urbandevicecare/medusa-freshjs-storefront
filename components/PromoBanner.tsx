@@ -40,7 +40,6 @@ export function PromoBanner() {
           <div class="flex flex-row items-center gap-4 shrink-0">
             <a
               href="/repairs/book"
-              f-client-nav={false}
               class="px-5 py-2.5 bg-black text-[#fcca0a] text-xs font-bold uppercase tracking-wider rounded-sm hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,0.3)] transition-all flex items-center gap-2"
             >
               <svg
@@ -62,7 +61,6 @@ export function PromoBanner() {
 
             <a
               href="/services/repairs"
-              f-client-nav
               class="text-black font-bold text-xs uppercase tracking-wider hover:opacity-70 transition-opacity whitespace-nowrap underline underline-offset-2 decoration-2"
             >
               Learn More

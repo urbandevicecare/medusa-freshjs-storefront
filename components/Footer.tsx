@@ -13,22 +13,22 @@ export function Footer({
             <h3 class="font-semibold mb-4">Shop</h3>
             <ul class="space-y-2 text-sm text-gray-600">
               <li>
-                <a href="/shop/iphone" f-client-nav>
+                <a href="/shop/iphone">
                   iPhone
                 </a>
               </li>
               <li>
-                <a href="/shop/mac" f-client-nav>
+                <a href="/shop/mac">
                   Mac
                 </a>
               </li>
               <li>
-                <a href="/shop/ipad" f-client-nav>
+                <a href="/shop/ipad">
                   iPad
                 </a>
               </li>
               <li>
-                <a href="/shop/watch" f-client-nav>
+                <a href="/shop/watch">
                   Watch
                 </a>
               </li>
@@ -39,23 +39,23 @@ export function Footer({
             <ul class="space-y-2 text-sm text-gray-600">
               {isRepairModuleInstalled && (
                 <li>
-                  <a href="/services/repairs" f-client-nav>
+                  <a href="/services/repairs">
                     Repairs
                   </a>
                 </li>
               )}
               <li>
-                <a href="/services/guides" f-client-nav>
+                <a href="/services/guides">
                   DIY Guides (iFixit)
                 </a>
               </li>
               <li>
-                <a href="/services/trade-in" f-client-nav>
+                <a href="/services/trade-in">
                   Trade-in
                 </a>
               </li>
               <li>
-                <a href="/services/financing" f-client-nav>
+                <a href="/services/financing">
                   Financing
                 </a>
               </li>
@@ -65,19 +65,18 @@ export function Footer({
             <h3 class="font-semibold mb-4">About</h3>
             <ul class="space-y-2 text-sm text-gray-600">
               <li>
-                <a href="/about/our-story" f-client-nav>
+                <a href="/about/our-story">
                   Our Story
                 </a>
               </li>
               <li>
-                <a href="/about/careers" f-client-nav>
+                <a href="/about/careers">
                   Careers
                 </a>
               </li>
               <li>
                 <a
                   href="/about/contact"
-                  f-client-nav
                   class="hover:text-gray-900 transition-colors"
                 >
                   Contact
@@ -86,7 +85,6 @@ export function Footer({
               <li>
                 <a
                   href="/news"
-                  f-client-nav
                   class="hover:text-gray-900 transition-colors"
                 >
                   News
@@ -130,13 +128,13 @@ export function Footer({
         </div>
         <div class="border-t border-gray-200 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500 gap-4">
           <div class="flex gap-4">
-            <a href="/legal/terms" f-client-nav class="hover:text-gray-900">
+            <a href="/legal/terms" class="hover:text-gray-900">
               Terms
             </a>
-            <a href="/legal/privacy" f-client-nav class="hover:text-gray-900">
+            <a href="/legal/privacy" class="hover:text-gray-900">
               Privacy
             </a>
-            <a href="/legal/cookies" f-client-nav class="hover:text-gray-900">
+            <a href="/legal/cookies" class="hover:text-gray-900">
               Cookies
             </a>
           </div>

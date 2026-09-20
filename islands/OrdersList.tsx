@@ -19,7 +19,6 @@ export function OrdersList(
         <p class="text-gray-500 mb-6">You haven't placed any orders yet.</p>
         <a
           href="/"
-          f-client-nav
           class="inline-flex items-center justify-center px-6 py-2.5 bg-gray-900 text-white font-medium rounded-lg hover:bg-gray-800 transition-colors"
         >
           Continue shopping

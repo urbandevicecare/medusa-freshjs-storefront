@@ -71,7 +71,6 @@ export default function Cart(
         </p>
         <a
           href="/"
-          f-client-nav
           class="inline-flex items-center justify-center px-8 py-3 bg-gray-900 text-white font-medium rounded-xl hover:bg-gray-800 transition-colors"
         >
           Start shopping
@@ -182,7 +181,6 @@ export default function Cart(
 
         <a
           href="/checkout"
-          f-client-nav
           class="w-full flex items-center justify-center px-6 py-3.5 bg-gray-900 text-white font-medium rounded-xl hover:bg-gray-800 transition-colors shadow-sm"
         >
           Proceed to checkout

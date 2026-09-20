@@ -108,7 +108,6 @@ export default function LoginForm(
           {isLogin && (
             <a
               href="/login"
-              f-client-nav
               class="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors"
             >
               Forgot password?

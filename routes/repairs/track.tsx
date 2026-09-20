@@ -46,7 +46,7 @@ export default define.page(function TrackRepairRoute(props) {
         <script src="https://js.paystack.co/v1/inline.js"></script>
       </Head>
       <Partial name="repair-content">
-        <div class="route-container" f-client-nav>
+        <div class="route-container">
           <div>
             <TrackRepairIsland
               backendUrl={backendUrl}

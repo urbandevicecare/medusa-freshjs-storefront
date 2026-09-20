@@ -57,7 +57,6 @@ export default define.page(function RepairsPage({ state, data }) {
             </h2>
             <a
               href="/repairs/book"
-              f-client-nav={false}
               class="mr-4 md:mr-0 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition font-medium text-sm"
             >
               Book a Repair
@@ -138,7 +137,7 @@ export default define.page(function RepairsPage({ state, data }) {
           </div>
 
           <div class="bg-slate-200 rounded-2xl p-6 border border-slate-300 hover:bg-slate-300 transition-colors">
-            <a href="/services/guides" f-client-nav class="block">
+            <a href="/services/guides" class="block">
               <div class="flex items-center gap-4 mb-3">
                 <div class="w-10 h-10 bg-slate-300 text-slate-800 rounded-lg flex items-center justify-center">
                   <BookOpen class="w-5 h-5" />
@@ -186,7 +185,6 @@ export default define.page(function RepairsPage({ state, data }) {
           </a>
           <a
             href="/about/contact"
-            f-client-nav
             class="bg-gray-800 text-white px-8 py-4 rounded-xl font-bold text-center hover:bg-gray-700 transition-colors border border-gray-700 flex-1"
           >
             Find Our Store

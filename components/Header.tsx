@@ -19,7 +19,6 @@ export function Header({
           <div class="flex-shrink-0 flex items-center h-full">
             <a
               href="/"
-              f-client-nav
               class="flex items-center h-full"
             >
               <img
@@ -32,7 +31,6 @@ export function Header({
           <nav class="hidden md:flex space-x-8">
             <a
               href="/"
-              f-client-nav
               class="text-gray-900 font-medium hover:text-blue-600"
             >
               Store
@@ -40,7 +38,6 @@ export function Header({
             {maxCategories.map((category: any) => (
               <a
                 href={`/shop/${category.handle}`}
-                f-client-nav
                 class="text-gray-900 font-medium hover:text-slate-600 capitalize"
               >
                 {category.name}
@@ -48,7 +45,6 @@ export function Header({
             ))}
             <a
               href="/news"
-              f-client-nav
               class="text-gray-900 font-medium hover:text-slate-600 capitalize"
             >
               News
@@ -58,7 +54,6 @@ export function Header({
             <div class="relative group">
               <a
                 href="/account"
-                f-client-nav
                 class="text-gray-600 hover:text-gray-900 flex items-center h-full py-2"
               >
                 <User class={`w-5 h-5 ${isLoggedIn ? "text-blue-600" : ""}`} />
@@ -68,14 +63,12 @@ export function Header({
                   <div class="bg-white border border-gray-100 shadow-xl rounded-xl overflow-hidden flex flex-col py-1.5 w-48">
                     <a
                       href="/account"
-                      f-client-nav
                       class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-blue-600"
                     >
                       Dashboard
                     </a>
                     <a
                       href="/account/orders"
-                      f-client-nav
                       class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-blue-600"
                     >
                       My Orders
@@ -84,14 +77,12 @@ export function Header({
                       <>
                         <a
                           href="/repairs"
-                          f-client-nav
                           class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-blue-600"
                         >
                           My Repairs
                         </a>
                         <a
                           href="/repairs/book"
-                          f-client-nav={false}
                           class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-blue-600"
                         >
                           Book a Repair
@@ -101,7 +92,6 @@ export function Header({
                     <div class="h-px bg-gray-100 my-1"></div>
                     <a
                       href="/api/auth/logout"
-                      f-client-nav="false"
                       class="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
                     >
                       Log out
@@ -112,7 +102,6 @@ export function Header({
             </div>
             <a
               href="/cart"
-              f-client-nav
               class="text-gray-600 hover:text-gray-900"
             >
               <ShoppingCart class="w-5 h-5" />
