@@ -1,8 +1,8 @@
 import { FreshContext } from "fresh";
 import { isRepairModuleInstalled } from "../../lib/features.ts";
 
-export async function handler(req: Request, ctx: FreshContext) {
-  const url = new URL(req.url);
+export async function handler(ctx: FreshContext) {
+  const url = new URL(ctx.req.url);
 
   if (url.pathname === "/services/repairs") {
     const isInstalled = await isRepairModuleInstalled();

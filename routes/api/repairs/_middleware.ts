@@ -1,7 +1,7 @@
 import { FreshContext } from "fresh";
 import { isRepairModuleInstalled } from "../../../lib/features.ts";
 
-export async function handler(_req: Request, ctx: FreshContext) {
+export async function handler(ctx: FreshContext) {
   const isInstalled = await isRepairModuleInstalled();
   if (!isInstalled) {
     return new Response(
