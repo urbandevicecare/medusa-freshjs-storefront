@@ -109,7 +109,12 @@ export function Footer({
               <p class="text-sm text-gray-600 mb-4">
                 Enter your repair ticket or serial number to check live status.
               </p>
-              <form action="/repairs/track" method="GET" class="flex gap-2" f-client-nav={false}>
+              <form
+                action="/repairs/track"
+                method="GET"
+                class="flex gap-2"
+                f-client-nav={false}
+              >
                 <input
                   type="text"
                   name="ticket"
