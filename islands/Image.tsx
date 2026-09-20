@@ -10,7 +10,11 @@ export default function Image(
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
 
-  if (!src || hasError) {
+  // via.placeholder.com is often down or blocks hotlinking, causing console errors.
+  // We instantly fallback to our UI icon instead of attempting to fetch it.
+  const finalSrc = src?.includes("via.placeholder.com") ? null : src;
+
+  if (!finalSrc || hasError) {
     return (
       <div
         class={`relative overflow-hidden bg-gray-50 flex items-center justify-center border border-gray-100 rounded-xl ${
@@ -31,7 +35,7 @@ export default function Image(
     <div class={`relative overflow-hidden bg-gray-50 ${className || ""}`}>
       {!isLoaded && <div class="absolute inset-0 animate-pulse bg-gray-100" />}
       <img
-        src={src}
+        src={finalSrc!}
         alt={alt}
         loading="lazy"
         decoding="async"
