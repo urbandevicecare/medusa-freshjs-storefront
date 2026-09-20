@@ -4,9 +4,11 @@ import { LOGO_URL, STORE_NAME } from "../lib/utils.ts";
 export function Header({
   categories = [],
   isLoggedIn = false,
+  isRepairModuleInstalled = false,
 }: {
   categories?: any[];
   isLoggedIn?: boolean;
+  isRepairModuleInstalled?: boolean;
 }) {
   const maxCategories = categories.slice(0, 4); // Limit to 4 dynamic + "Store" = 5 items.
 
@@ -78,20 +80,24 @@ export function Header({
                     >
                       My Orders
                     </a>
-                    <a
-                      href="/repairs"
-                      f-client-nav
-                      class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-blue-600"
-                    >
-                      My Repairs
-                    </a>
-                    <a
-                      href="/repairs/book"
-                      f-client-nav={false}
-                      class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-blue-600"
-                    >
-                      Book a Repair
-                    </a>
+                    {isRepairModuleInstalled && (
+                      <>
+                        <a
+                          href="/repairs"
+                          f-client-nav
+                          class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-blue-600"
+                        >
+                          My Repairs
+                        </a>
+                        <a
+                          href="/repairs/book"
+                          f-client-nav={false}
+                          class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-blue-600"
+                        >
+                          Book a Repair
+                        </a>
+                      </>
+                    )}
                     <div class="h-px bg-gray-100 my-1"></div>
                     <a
                       href="/api/auth/logout"

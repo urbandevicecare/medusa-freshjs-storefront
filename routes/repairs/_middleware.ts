@@ -1,7 +1,13 @@
 import { getCookies } from "jsr:@std/http@0.224.0/cookie";
 import { FreshContext } from "fresh";
+import { isRepairModuleInstalled } from "../../lib/features.ts";
 
 export async function handler(ctx: FreshContext) {
+  const isInstalled = await isRepairModuleInstalled();
+  if (!isInstalled) {
+    return new Response("Not Found", { status: 404 });
+  }
+
   const req = ctx.req;
   const url = new URL(req.url);
   const path = url.pathname;

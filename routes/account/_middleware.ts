@@ -21,18 +21,31 @@ export async function handler(ctx: FreshContext) {
   const pubKey = Deno.env.get("MEDUSA_PUBLISHABLE_KEY") || "";
 
   try {
-    const [ordersResult, repairsRes] = await Promise.all([
-      medusa.store.order.list(
-        { fields: "*items,*items.metadata" },
-        { Authorization: `Bearer ${token}` },
-      ),
-      fetch(`${medusaUrl}/store/customers/me/repairs`, {
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "x-publishable-api-key": pubKey,
-        },
-      }),
-    ]);
+    let fetchedRepairs: any[] = [];
+    let repairsRes;
+
+    const ordersPromise = medusa.store.order.list(
+      { fields: "*items,*items.metadata" },
+      { Authorization: `Bearer ${token}` },
+    );
+
+    let ordersResult;
+
+    if (ctx.state.isRepairModuleInstalled) {
+      const [ordersRes, repairsFetchRes] = await Promise.all([
+        ordersPromise,
+        fetch(`${medusaUrl}/store/customers/me/repairs`, {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "x-publishable-api-key": pubKey,
+          },
+        }),
+      ]);
+      ordersResult = ordersRes;
+      repairsRes = repairsFetchRes;
+    } else {
+      ordersResult = await ordersPromise;
+    }
 
     // Handle orders
     const { orders } = ordersResult;
@@ -53,14 +66,15 @@ export async function handler(ctx: FreshContext) {
     });
 
     // Handle repairs from the authenticated endpoint
-    let fetchedRepairs: any[] = [];
-    if (repairsRes.ok) {
+    if (repairsRes?.ok) {
       const data = await repairsRes.json();
       fetchedRepairs = data.repairs || [];
     }
 
     // We have repairs if fetchedRepairs is not empty, or if we fell back to finding them in orders
-    ctx.state.hasRepairs = fetchedRepairs.length > 0 || repairItems.length > 0;
+    ctx.state.hasRepairs = ctx.state.isRepairModuleInstalled
+      ? (fetchedRepairs.length > 0 || repairItems.length > 0)
+      : false;
     ctx.state.repairItems = repairItems;
     ctx.state.repairs = fetchedRepairs;
   } catch (e) {

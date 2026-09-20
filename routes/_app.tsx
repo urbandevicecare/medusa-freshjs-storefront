@@ -44,12 +44,15 @@ export default define.page(function App({ Component, state }) {
           <Header
             categories={(state?.categories as any[]) || []}
             isLoggedIn={!!state?.isLoggedIn}
+            isRepairModuleInstalled={!!state?.isRepairModuleInstalled}
           />
         )}
         <Partial name="main">
           <Component />
         </Partial>
-        {!state?.hideLayout && <Footer />}
+        {!state?.hideLayout && (
+          <Footer isRepairModuleInstalled={!!state?.isRepairModuleInstalled} />
+        )}
       </body>
     </html>
   );

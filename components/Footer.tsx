@@ -1,5 +1,10 @@
 import { STORE_NAME } from "../lib/utils.ts";
-export function Footer() {
+
+export function Footer({
+  isRepairModuleInstalled = false,
+}: {
+  isRepairModuleInstalled?: boolean;
+}) {
   return (
     <footer class="bg-white border-t border-gray-200 pt-16 pb-8">
       <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -32,11 +37,13 @@ export function Footer() {
           <div>
             <h3 class="font-semibold mb-4">Services</h3>
             <ul class="space-y-2 text-sm text-gray-600">
-              <li>
-                <a href="/services/repairs" f-client-nav>
-                  Repairs
-                </a>
-              </li>
+              {isRepairModuleInstalled && (
+                <li>
+                  <a href="/services/repairs" f-client-nav>
+                    Repairs
+                  </a>
+                </li>
+              )}
               <li>
                 <a href="/services/guides" f-client-nav>
                   DIY Guides (iFixit)
@@ -98,26 +105,28 @@ export function Footer() {
               </li>
             </ul>
           </div>
-          <div class="col-span-2 md:col-span-2">
-            <h3 class="font-semibold mb-4">Quick Repair Tracker</h3>
-            <p class="text-sm text-gray-600 mb-4">
-              Enter your repair ticket or serial number to check live status.
-            </p>
-            <form action="/repairs/track" method="GET" class="flex gap-2">
-              <input
-                type="text"
-                name="ticket"
-                placeholder="Ticket ID or Serial Number"
-                class="flex-1 border border-gray-300 rounded-md px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                type="submit"
-                class="bg-black text-white px-6 py-2 rounded-md text-sm font-medium hover:bg-gray-800 transition-colors"
-              >
-                Track
-              </button>
-            </form>
-          </div>
+          {isRepairModuleInstalled && (
+            <div class="col-span-2 md:col-span-2">
+              <h3 class="font-semibold mb-4">Quick Repair Tracker</h3>
+              <p class="text-sm text-gray-600 mb-4">
+                Enter your repair ticket or serial number to check live status.
+              </p>
+              <form action="/repairs/track" method="GET" class="flex gap-2">
+                <input
+                  type="text"
+                  name="ticket"
+                  placeholder="Ticket ID or Serial Number"
+                  class="flex-1 border border-gray-300 rounded-md px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  type="submit"
+                  class="bg-black text-white px-6 py-2 rounded-md text-sm font-medium hover:bg-gray-800 transition-colors"
+                >
+                  Track
+                </button>
+              </form>
+            </div>
+          )}
         </div>
         <div class="border-t border-gray-200 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500 gap-4">
           <div class="flex gap-4">

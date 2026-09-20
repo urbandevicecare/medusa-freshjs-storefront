@@ -1,8 +1,15 @@
 import { define } from "../../../../lib/utils.ts";
 import { getCookies } from "jsr:@std/http@0.224.0/cookie";
+import { isPaystackInstalled } from "../../../../lib/features.ts";
 
 export const handler = define.handlers({
   POST: async (ctx) => {
+    const isInstalled = await isPaystackInstalled();
+    if (!isInstalled) {
+      return new Response(JSON.stringify({ error: "Paystack not installed" }), {
+        status: 404,
+      });
+    }
     try {
       const orderId = ctx.params.id;
       const cookies = getCookies(ctx.req.headers);
