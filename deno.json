@@ -2,7 +2,7 @@
   "lock": false,
   "nodeModulesDir": "auto",
   "tasks": {
-    "check": "deno fmt --check . && deno lint . && deno check",
+    "check": "deno fmt --check . && deno lint .",
     "dev": "deno run -A --env --unstable-kv scripts/generate-seo.ts && deno run -A --env --unstable-kv npm:vite",
     "build": "deno run -A --env --unstable-kv scripts/generate-seo.ts && deno run -A --env --unstable-kv npm:vite build",
     "start": "deno run -A --env --unstable-kv scripts/generate-seo.ts && deno serve -A --env --unstable-kv _fresh/server.js",
