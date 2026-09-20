@@ -1,7 +1,7 @@
 import { define } from "../../../lib/utils.ts";
 import { verifyOrderHash } from "../../../lib/secure-link.ts";
 import { CheckCircle2 } from "lucide-preact";
-import { STORE_NAME } from "../../../lib/utils.ts";
+import { formatProviderName, STORE_NAME } from "../../../lib/utils.ts";
 import PublicOrderPaymentIsland from "../../../islands/PublicOrderPaymentIsland.tsx";
 import { getUnifiedOrderNumber } from "../../../lib/order-utils.ts";
 import { formatAmount } from "../../../lib/pricing.ts";
@@ -32,7 +32,7 @@ export const handler = define.handlers({
         {
           fields:
             "*items,*items.variant,*items.variant.product,*shipping_address,*billing_address,*payment_collections,*payment_collections.payments,*payment_collections.payment_sessions",
-        }
+        },
       );
       order = fetchedOrder;
     } catch (e: unknown) {
@@ -51,42 +51,27 @@ export const handler = define.handlers({
     }
 
     // Fetch payment providers globally/publicly
-    let paymentProviders = [];
+    let paymentProviders: { id: string; name: string }[] = [];
     try {
-      const { payment_providers } = await medusa.store.payment.listPaymentProviders({});
-      // Filter out providers or customize if needed, or just let island handle fallback
-      // Often you might use Deno.env.get("PAYMENT_PROVIDERS") here to sync with Checkout
-      const envProviders = Deno.env.get("PAYMENT_PROVIDERS");
-      if (envProviders) {
-        try {
-          const mapped = envProviders.split(",").map((p) => {
-            const [id, name] = p.split(":");
-            return { id: id.trim(), name: name.trim() };
-          });
-          paymentProviders = mapped;
-        } catch (e) {
-          console.error("Error parsing PAYMENT_PROVIDERS from env:", e);
-        }
-      } else {
-        paymentProviders = (payment_providers || []).map((p: any) => {
-          let name = p.id;
-          if (p.id.includes("manual") || p.id === "pp_system_default") {
-            name = "Pay on Delivery (Manual)";
-          } else if (p.id.includes("paystack")) {
-            name = "Paystack";
-          }
-          return { id: p.id, name };
-        });
-      }
+      const { payment_providers } = await medusa.store.payment
+        .listPaymentProviders({});
+      paymentProviders = (payment_providers || []).map((p: any) => ({
+        id: p.id,
+        name: formatProviderName(p.id),
+      }));
     } catch (e) {
       console.error("Failed to fetch payment providers publicly", e);
     }
 
     ctx.state.order = order;
     ctx.state.paymentProviders = paymentProviders;
-    ctx.state.title = `Pay Order #${getUnifiedOrderNumber(order)} - ${STORE_NAME}`;
-    ctx.state.description = `Pay remaining balance for order #${getUnifiedOrderNumber(order)}.`;
-    
+    ctx.state.title = `Pay Order #${
+      getUnifiedOrderNumber(order)
+    } - ${STORE_NAME}`;
+    ctx.state.description = `Pay remaining balance for order #${
+      getUnifiedOrderNumber(order)
+    }.`;
+
     return page({ order, paymentProviders });
   },
 });
@@ -117,7 +102,10 @@ export default define.page(function PublicOrderPayPage(props) {
     }
   }
 
-  const remainingBalanceRaw = Math.max(0, (order.total || 0) - capturedAmountRaw);
+  const remainingBalanceRaw = Math.max(
+    0,
+    (order.total || 0) - capturedAmountRaw,
+  );
 
   return (
     <div class="max-w-4xl mx-auto px-4 py-12 md:py-16">
@@ -145,12 +133,17 @@ export default define.page(function PublicOrderPayPage(props) {
               <div class="flex-1">
                 <h3 class="font-medium text-gray-900">{item.title}</h3>
                 {item.variant?.title && (
-                  <p class="text-sm text-gray-500">Variant: {item.variant.title}</p>
+                  <p class="text-sm text-gray-500">
+                    Variant: {item.variant.title}
+                  </p>
                 )}
               </div>
               <div class="text-right">
                 <p class="font-medium text-gray-900">
-                  {formatAmount(item.unit_price, currencyCode)} <span class="text-gray-400 font-normal">x{item.quantity}</span>
+                  {formatAmount(item.unit_price, currencyCode)}{" "}
+                  <span class="text-gray-400 font-normal">
+                    x{item.quantity}
+                  </span>
                 </p>
               </div>
             </div>
@@ -193,28 +186,33 @@ export default define.page(function PublicOrderPayPage(props) {
           </div>
 
           <div>
-            {remainingBalanceRaw <= 0 ? (
-              <div class="h-full flex flex-col items-center justify-center bg-green-50 rounded-xl border border-green-100 p-8 text-center space-y-4">
-                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                  <CheckCircle2 class="w-8 h-8 text-green-600" />
+            {remainingBalanceRaw <= 0
+              ? (
+                <div class="h-full flex flex-col items-center justify-center bg-green-50 rounded-xl border border-green-100 p-8 text-center space-y-4">
+                  <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                    <CheckCircle2 class="w-8 h-8 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 class="text-xl font-bold text-green-800 mb-2">
+                      Order Fully Paid!
+                    </h3>
+                    <p class="text-green-600 text-sm">
+                      Thank you! This order has been fully paid. No further
+                      action is required.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 class="text-xl font-bold text-green-800 mb-2">Order Fully Paid!</h3>
-                  <p class="text-green-600 text-sm">
-                    Thank you! This order has been fully paid. No further action is required.
-                  </p>
+              )
+              : (
+                <div class="h-full">
+                  <PublicOrderPaymentIsland
+                    orderId={order.id}
+                    remainingBalanceRaw={remainingBalanceRaw}
+                    currencyCode={currencyCode}
+                    paymentProviders={paymentProviders}
+                  />
                 </div>
-              </div>
-            ) : (
-              <div class="h-full">
-                <PublicOrderPaymentIsland
-                  orderId={order.id}
-                  remainingBalanceRaw={remainingBalanceRaw}
-                  currencyCode={currencyCode}
-                  paymentProviders={paymentProviders}
-                />
-              </div>
-            )}
+              )}
           </div>
         </div>
       </div>

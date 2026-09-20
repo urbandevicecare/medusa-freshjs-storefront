@@ -5,7 +5,7 @@ import { getCookies } from "jsr:@std/http@0.224.0/cookie";
 import { HttpTypes } from "@medusajs/types";
 import { page } from "fresh";
 import { Head } from "fresh/runtime";
-import { STORE_NAME } from "../lib/utils.ts";
+import { formatProviderName, STORE_NAME } from "../lib/utils.ts";
 
 export const handler = define.handlers({
   async GET(ctx) {
@@ -53,43 +53,17 @@ export const handler = define.handlers({
           o.amount !== null && o.amount !== undefined
         ) || [];
 
-        // Fetch payment providers
-        paymentProviders = [];
-        const envProviders = Deno.env.get("PAYMENT_PROVIDERS");
+        // Fetch payment providers dynamically based on region
+        try {
+          const { payment_providers } = await medusa.store.payment
+            .listPaymentProviders({ region_id: cart.region_id }, headers);
 
-        if (envProviders) {
-          // Format expected: "pp_system_default:Pay on Delivery,pp_paystack_paystack:Paystack"
-          try {
-            paymentProviders = envProviders.split(",").map((p) => {
-              const [id, ...nameParts] = p.split(":");
-              return {
-                id: id.trim(),
-                name: nameParts.join(":").trim() || id.trim(),
-              };
-            }).filter((p) =>
-              p.id
-            );
-          } catch (e) {
-            console.error("Error parsing PAYMENT_PROVIDERS env var", e);
-          }
-        } else {
-          try {
-            const { payment_providers } = await medusa.store.payment
-              .listPaymentProviders({ region_id: cart.region_id }, headers);
-            paymentProviders = (payment_providers || []).map((p: any) => {
-              let name = p.id;
-              if (p.id.includes("manual") || p.id === "pp_system_default") {
-                name = "Pay on Delivery (Manual)";
-              } else if (p.id.includes("paystack")) {
-                name = "Paystack";
-              } else if (p.id.includes("stripe")) {
-                name = "Credit Card (Stripe)";
-              }
-              return { id: p.id, name };
-            });
-          } catch (e) {
-            console.error("Error fetching payment providers", e);
-          }
+          paymentProviders = (payment_providers || []).map((p: any) => ({
+            id: p.id,
+            name: formatProviderName(p.id),
+          }));
+        } catch (e) {
+          console.error("Error fetching payment providers", e);
         }
       } catch (e) {
         console.error("Error fetching cart/addresses for checkout:", e);

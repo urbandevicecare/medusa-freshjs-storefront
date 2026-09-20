@@ -46,7 +46,7 @@ export default function BookRepairIsland() {
     setError(null);
 
     try {
-      const response = await fetch("/api/repairs", {
+      const response = await fetch("/api/repairs/book", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -54,6 +54,7 @@ export default function BookRepairIsland() {
           ticket: {
             issue_description: issueDescription,
             accessories: accessories || undefined,
+            terms_accepted: termsAccepted,
           },
         }),
       });

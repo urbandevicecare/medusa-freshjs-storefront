@@ -20,7 +20,7 @@ export const handler = define.handlers({
         orderId,
         {
           fields: "*payment_collections,*payment_collections.payment_sessions",
-        }
+        },
       );
 
       if (!order) {
@@ -54,7 +54,7 @@ export const handler = define.handlers({
           },
           headers: {
             "x-publishable-api-key": publishableKey,
-          }
+          },
         },
       );
 

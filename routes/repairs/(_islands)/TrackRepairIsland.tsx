@@ -4,17 +4,40 @@ import { Info, Wrench } from "lucide-preact";
 export default function TrackRepairIsland({
   initialToken,
   initialTicket,
+  initialAction,
+  backendUrl,
+  publishableApiKey,
+  paystackPublicKey,
   isLoggedIn = false,
 }: {
   initialToken?: string;
   initialTicket?: string;
   initialAction?: string;
+  backendUrl?: string;
+  publishableApiKey?: string;
+  paystackPublicKey?: string;
   isLoggedIn?: boolean;
 }) {
   const [ticketNumber, setTicketNumber] = useState(initialTicket || "");
   const [ticket, setTicket] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isPaying, setIsPaying] = useState(false);
+
+  const totalDue = ticket
+    ? (ticket.total_actual > 0 ? ticket.total_actual : ticket.total_estimate)
+    : 0;
+  const amountPaid = ticket?.amount_paid || 0;
+  const remainingBalance = totalDue - amountPaid;
+
+  const [paymentAmount, setPaymentAmount] = useState<number | "">("");
+
+  // Sync default value when ticket loads
+  useEffect(() => {
+    if (remainingBalance > 0) {
+      setPaymentAmount(remainingBalance);
+    }
+  }, [remainingBalance]);
 
   useEffect(() => {
     if (initialToken) {
@@ -38,11 +61,15 @@ export default function TrackRepairIsland({
         setTimeout(() => {
           if (initialAction === "approve") {
             if (confirm("Do you want to confirm approval for this repair?")) {
-               processApproval(true, token);
+              processApproval(true, token);
             }
           } else if (initialAction === "reject") {
-            if (confirm("Are you sure you want to decline this repair? This will cancel the ticket.")) {
-               processApproval(false, token);
+            if (
+              confirm(
+                "Are you sure you want to decline this repair? This will cancel the ticket.",
+              )
+            ) {
+              processApproval(false, token);
             }
           }
         }, 500);
@@ -77,11 +104,15 @@ export default function TrackRepairIsland({
         setTimeout(() => {
           if (initialAction === "approve") {
             if (confirm("Do you want to confirm approval for this repair?")) {
-               processApproval(true, null, data.repair_ticket.id);
+              processApproval(true, null, data.repair_ticket.id);
             }
           } else if (initialAction === "reject") {
-            if (confirm("Are you sure you want to decline this repair? This will cancel the ticket.")) {
-               processApproval(false, null, data.repair_ticket.id);
+            if (
+              confirm(
+                "Are you sure you want to decline this repair? This will cancel the ticket.",
+              )
+            ) {
+              processApproval(false, null, data.repair_ticket.id);
             }
           }
         }, 500);
@@ -93,14 +124,16 @@ export default function TrackRepairIsland({
     }
   };
 
-  const processApproval = async (approved: boolean, token: string | null = null, ticketId: string | null = null) => {
+  const processApproval = async (
+    approved: boolean,
+    token: string | null = null,
+    ticketId: string | null = null,
+  ) => {
     try {
       const targetUrl = token
         ? `/api/repairs/approve`
         : `/api/repairs/${ticketId || ticket?.id}/approve`;
-      const bodyData = token
-        ? { token, approved }
-        : { approved };
+      const bodyData = token ? { token, approved } : { approved };
 
       const response = await fetch(targetUrl, {
         method: "POST",
@@ -109,14 +142,18 @@ export default function TrackRepairIsland({
       });
 
       if (response.ok) {
-        alert(approved ? "Repair approved! Work will begin shortly." : "Repair has been declined and cancelled.");
+        alert(
+          approved
+            ? "Repair approved! Work will begin shortly."
+            : "Repair has been declined and cancelled.",
+        );
         if (token || initialToken) handleTokenSearch(token || initialToken!);
         else handleSearch(new Event("submit") as any);
       } else {
-        throw new Error(`Failed to ${approved ? 'approve' : 'decline'} repair`);
+        throw new Error(`Failed to ${approved ? "approve" : "decline"} repair`);
       }
     } catch (err) {
-      alert(`Failed to ${approved ? 'approve' : 'decline'} repair`);
+      alert(`Failed to ${approved ? "approve" : "decline"} repair`);
     }
   };
 
@@ -158,6 +195,74 @@ export default function TrackRepairIsland({
     } catch (e) {
       console.error("Failed to generate PDF document", e);
       alert("An error occurred while downloading the document.");
+    }
+  };
+
+  const handlePay = async () => {
+    if (!ticket || !paystackPublicKey) return;
+    if (paymentAmount === "" || paymentAmount <= 0) return;
+
+    // SAFEGUARD: Even though we have an input max, enforce it here too
+    const finalAmount = Math.min(Number(paymentAmount), remainingBalance);
+    if (finalAmount <= 0) return;
+
+    try {
+      setIsPaying(true);
+
+      // 1. Initialize strictly on the server
+      const initRes = await fetch(`/api/repairs/paystack/initialize`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ticket_id: ticket.id,
+          amount: finalAmount,
+        }),
+      });
+
+      const initData = await initRes.json();
+      if (!initRes.ok) {
+        alert(
+          initData.message ||
+            "Failed to initialize payment securely on the server.",
+        );
+        setIsPaying(false);
+        return;
+      }
+
+      // 2. Open Paystack Modal using the strict access_code from the server
+      const paystack = new (window as any).PaystackPop();
+      paystack.newTransaction({
+        key: paystackPublicKey,
+        access_code: initData.access_code,
+        onSuccess: async (transaction: any) => {
+          try {
+            const targetUrl = `/api/repairs/paystack/verify`;
+            await fetch(targetUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                reference: transaction.reference || initData.reference,
+              }),
+            });
+            alert("Payment successful! Your receipt has been generated.");
+
+            // Refresh
+            if (initialToken) handleTokenSearch(initialToken);
+            else handleSearch(new Event("submit") as any);
+          } catch (e) {
+            alert("Payment verification failed on the server.");
+          } finally {
+            setIsPaying(false);
+          }
+        },
+        onCancel: () => {
+          setIsPaying(false);
+        },
+      });
+    } catch (e) {
+      console.error(e);
+      alert("Failed to initialize Paystack");
+      setIsPaying(false);
     }
   };
 
@@ -441,7 +546,7 @@ export default function TrackRepairIsland({
                             {cp.name}
                           </span>
                           <span className="text-slate-700 font-medium">
-                            KES {(cp.price / 100).toFixed(2)}
+                            KES {cp.price.toFixed(2)}
                           </span>
                         </div>
                       ))}
@@ -452,22 +557,65 @@ export default function TrackRepairIsland({
                     <div className="flex justify-between text-sm text-slate-500 pl-4">
                       <span>Parts Estimate:</span>
                       <span className="text-slate-700 font-medium">
-                        KES {((ticket.parts_estimate || 0) / 100).toFixed(2)}
+                        KES {(ticket.parts_estimate || 0).toFixed(2)}
                       </span>
                     </div>
                     <div className="flex justify-between text-sm text-slate-500 pl-4">
                       <span>Labor Estimate:</span>
                       <span className="text-slate-700 font-medium">
-                        KES {((ticket.labor_estimate || 0) / 100).toFixed(2)}
+                        KES {(ticket.labor_estimate || 0).toFixed(2)}
                       </span>
                     </div>
                     <div className="flex justify-between text-base font-semibold text-slate-800 border-t border-slate-200 pt-3 mt-3">
                       <span>Total Estimate:</span>
                       <span>
-                        KES {((ticket.total_estimate || 0) / 100).toFixed(2)}
+                        KES {(ticket.total_estimate || 0).toFixed(2)}
                       </span>
                     </div>
                   </div>
+
+                  {paystackPublicKey && ticket.payment_status !== "captured" &&
+                    ticket.payment_status !== "paid" && (
+                    <div className="mt-6 flex flex-col gap-3">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-sm font-medium text-slate-700">
+                          Amount to Pay (KES)
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max={remainingBalance}
+                          value={paymentAmount}
+                          onInput={(e) => {
+                            let val = Number(
+                              (e.target as HTMLInputElement).value,
+                            );
+                            if (val > remainingBalance) val = remainingBalance;
+                            setPaymentAmount(val);
+                          }}
+                          className="w-full px-3 py-2 border border-slate-300 rounded focus:outline-none focus:border-[#092e4a]"
+                        />
+                        <span className="text-xs text-slate-500">
+                          Remaining balance: KES {remainingBalance.toFixed(2)}
+                        </span>
+                      </div>
+                      <button
+                        onClick={handlePay}
+                        disabled={isPaying || !paymentAmount}
+                        className="w-full px-6 py-3 bg-[#092e4a] text-white font-medium rounded hover:bg-[#0b3c61] disabled:opacity-50 transition-colors shadow-sm text-center flex items-center justify-center gap-2"
+                      >
+                        {isPaying
+                          ? "Processing..."
+                          : `Pay KES ${Number(paymentAmount).toFixed(2)}`}
+                      </button>
+                    </div>
+                  )}
+                  {(ticket.payment_status === "captured" ||
+                    ticket.payment_status === "paid") && (
+                    <div className="mt-6 p-3 bg-green-50 border border-green-200 text-green-700 rounded-md text-sm text-center font-medium">
+                      ✓ Payment Complete
+                    </div>
+                  )}
                 </div>
                 {/* Divider */}
                 <div className="w-full h-px lg:w-px lg:h-auto lg:self-stretch bg-slate-200 block">
@@ -801,7 +949,11 @@ export default function TrackRepairIsland({
                 </button>
                 <button
                   onClick={() => {
-                    if (confirm("Are you sure you want to decline this repair? This will cancel the ticket.")) {
+                    if (
+                      confirm(
+                        "Are you sure you want to decline this repair? This will cancel the ticket.",
+                      )
+                    ) {
                       processApproval(false, initialToken, ticket.id);
                     }
                   }}

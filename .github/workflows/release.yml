@@ -1,0 +1,40 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Run Tests
+        run: deno task test
+
+      - name: Check Code Quality
+        run: deno task check
+
+      - name: Build Project
+        run: deno task build
+
+      - name: Create Release Zip
+        run: |
+          zip -r storefront-release.zip . -x "*.git*" "*node_modules*"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: storefront-release.zip
+          generate_release_notes: true

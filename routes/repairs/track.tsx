@@ -7,14 +7,16 @@ export const handler = define.handlers({
   GET(ctx) {
     const backendUrl = Deno.env.get("MEDUSA_BACKEND_URL")!;
     const publishableKey = Deno.env.get("MEDUSA_PUBLISHABLE_KEY") || "";
-    const isLoggedIn = Boolean(ctx.state.isLoggedIn);
+    const paystackPublicKey = Deno.env.get("PAYSTACK_PUBLIC_KEY") || "";
+    const isLoggedIn = Boolean((ctx.state as any).isLoggedIn);
 
-    return page({ backendUrl, publishableKey, isLoggedIn });
+    return page({ backendUrl, publishableKey, paystackPublicKey, isLoggedIn });
   },
 });
 
 export default define.page(function TrackRepairRoute(props) {
-  const { backendUrl, publishableKey, isLoggedIn } = props.data;
+  const { backendUrl, publishableKey, paystackPublicKey, isLoggedIn } =
+    props.data;
   const token = props.url.searchParams.get("token") || "";
   const ticket = props.url.searchParams.get("ticket") ||
     props.url.searchParams.get("serial") || "";
@@ -41,6 +43,7 @@ export default define.page(function TrackRepairRoute(props) {
           content="Track your device repair ticket status."
         />
         <meta name="view-transition" content="same-origin" />
+        <script src="https://js.paystack.co/v1/inline.js"></script>
       </Head>
       <Partial name="repair-content">
         <div class="route-container" f-client-nav>
@@ -51,6 +54,7 @@ export default define.page(function TrackRepairRoute(props) {
               initialTicket={ticket}
               initialAction={action}
               publishableApiKey={publishableKey}
+              paystackPublicKey={paystackPublicKey}
               isLoggedIn={isLoggedIn}
             />
           </div>

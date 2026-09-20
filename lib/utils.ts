@@ -17,3 +17,13 @@ export const define = createDefine<State>();
 export const STORE_NAME = Deno.env.get("STORE_NAME") || "Tech Store";
 export const STORE_DOMAIN = Deno.env.get("STORE_DOMAIN") || "techstore.com";
 export const LOGO_URL = Deno.env.get("LOGO_URL") || "/logo.svg";
+
+export function formatProviderName(id: string): string {
+  return id
+    .replace(/^pp_/, "")
+    .replace(/[_-]/g, " ")
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}

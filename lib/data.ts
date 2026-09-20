@@ -1,45 +1,52 @@
 import { medusa } from "./sdk.ts";
-
-let cachedCategories: any[] | null = null;
-let categoriesCacheTime = 0;
+import { withCache } from "./cache.ts";
 
 export async function getCategories() {
-  if (cachedCategories && Date.now() - categoriesCacheTime < 1000 * 60 * 5) {
-    return cachedCategories;
-  }
-  try {
-    const { product_categories } = await medusa.store.category.list({
-      limit: 100,
-    }, { next: { revalidate: 300 } });
-    if (product_categories) {
-      console.log(
-        "Fetched categories from medusa:",
-        product_categories.map((c) => ({ id: c.id, handle: c.handle })),
-      );
-      // Sort by rank, then take top 4
-      const sorted = product_categories.sort((a: any, b: any) =>
-        (a.rank || 0) - (b.rank || 0)
-      );
-      cachedCategories = sorted;
-      categoriesCacheTime = Date.now();
-      return sorted;
-    }
-  } catch (e) {
-    console.warn("Failed to fetch product categories", e);
-  }
-  return [];
+  return await withCache(
+    ["medusa", "categories"],
+    async () => {
+      try {
+        const { product_categories } = await medusa.store.category.list({
+          limit: 100,
+        });
+        if (product_categories) {
+          console.log(
+            "Fetched categories from medusa:",
+            product_categories.map((c: any) => ({
+              id: c.id,
+              handle: c.handle,
+            })),
+          );
+          // Sort by rank, then take top 4
+          return product_categories.sort((a: any, b: any) =>
+            (a.rank || 0) - (b.rank || 0)
+          );
+        }
+      } catch (e) {
+        console.warn("Failed to fetch product categories", e);
+      }
+      return [];
+    },
+    1000 * 60 * 15, // 15 minutes cache
+  );
 }
 
 export async function getStoreRegion() {
-  try {
-    const { regions } = await medusa.store.region.list();
-    if (regions && regions.length > 0) {
-      return regions[0];
-    }
-  } catch (_e) {
-    console.warn("Failed to fetch regions");
-  }
-  return null;
+  return await withCache(
+    ["medusa", "region"],
+    async () => {
+      try {
+        const { regions } = await medusa.store.region.list();
+        if (regions && regions.length > 0) {
+          return regions[0];
+        }
+      } catch (_e) {
+        console.warn("Failed to fetch regions");
+      }
+      return null;
+    },
+    1000 * 60 * 60, // 1 hour cache
+  );
 }
 
 export async function getStoreCurrency() {
@@ -61,10 +68,18 @@ export async function getProducts(
     }
 
     if (collectionHandle) {
-      // Fetch collection first to get its ID
-      const { collections } = await medusa.store.collection.list({
-        handle: collectionHandle,
-      }, headers);
+      // Fetch collection first to get its ID from cache
+      const collections = await withCache(
+        ["medusa", "collection", collectionHandle],
+        async () => {
+          const { collections } = await medusa.store.collection.list(
+            { handle: collectionHandle },
+            headers,
+          );
+          return collections;
+        },
+        1000 * 60 * 60, // 1 hour cache
+      );
 
       if (collections && collections.length > 0) {
         query.collection_id = [collections[0].id];

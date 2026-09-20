@@ -154,7 +154,7 @@ function ProgressBarInner() {
     globalThis.addEventListener("fresh:partial-end", completeProgress);
     globalThis.addEventListener("fresh:client-nav-start", startProgress);
     globalThis.addEventListener("fresh:client-nav-end", completeProgress);
-    
+
     // Also listen for turbo/pjax style errors or aborted navs just in case
     globalThis.addEventListener("error", completeProgress);
 

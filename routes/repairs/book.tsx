@@ -1,6 +1,20 @@
 import { Head, Partial } from "fresh/runtime";
 import BookRepairIsland from "./(_islands)/BookRepairIsland.tsx";
 import { define, STORE_NAME } from "../../lib/utils.ts";
+import { page } from "fresh";
+
+export const handler = define.handlers({
+  GET(ctx) {
+    const isLoggedIn = Boolean((ctx.state as any).isLoggedIn);
+    if (!isLoggedIn) {
+      return new Response(null, {
+        status: 302,
+        headers: { Location: "/account/login?redirect=/repairs/book" },
+      });
+    }
+    return page({});
+  },
+});
 
 export default define.page(function BookRepairRoute(props) {
   return (

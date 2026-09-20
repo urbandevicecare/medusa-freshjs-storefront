@@ -21,7 +21,9 @@ export default function Checkout({
   shippingOptions: any[];
   paymentProviders: any[];
 }) {
-  const [availableShippingOptions, setAvailableShippingOptions] = useState(shippingOptions || []);
+  const [availableShippingOptions, setAvailableShippingOptions] = useState(
+    shippingOptions || [],
+  );
   const [isProcessing, setIsProcessing] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
@@ -61,7 +63,9 @@ export default function Checkout({
   };
 
   const [selectedShippingOption, setSelectedShippingOption] = useState<string>(
-    availableShippingOptions && availableShippingOptions.length > 0 ? availableShippingOptions[0].id : "",
+    availableShippingOptions && availableShippingOptions.length > 0
+      ? availableShippingOptions[0].id
+      : "",
   );
 
   useEffect(() => {
@@ -79,15 +83,15 @@ export default function Checkout({
               city: formValues.city || "City",
               postal_code: formValues.zip || "00000",
               country_code: formValues.country,
-            }
-          })
+            },
+          }),
         });
         if (res.ok && active) {
           const data = await res.json();
           if (data.success && data.shipping_options) {
             setAvailableShippingOptions(data.shipping_options);
             if (data.shipping_options.length > 0) {
-              setSelectedShippingOption(prev => {
+              setSelectedShippingOption((prev) => {
                 if (!data.shipping_options.find((o: any) => o.id === prev)) {
                   return data.shipping_options[0].id;
                 }
@@ -103,7 +107,9 @@ export default function Checkout({
       }
     };
     fetchShipping();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [formValues.country]);
 
   const handleCheckout = async (e: Event) => {
@@ -178,9 +184,9 @@ export default function Checkout({
       if (paymentMethod.includes("paystack")) {
         console.log("Paystack flow triggered", initData);
 
-        const accessCode = initData.paymentSession?.paystackTxAccessCode || 
-                           initData.paymentSession?.accessCode || 
-                           initData.paymentSession?.access_code;
+        const accessCode = initData.paymentSession?.paystackTxAccessCode ||
+          initData.paymentSession?.accessCode ||
+          initData.paymentSession?.access_code;
 
         if (!accessCode) {
           setError("Failed to initialize Paystack payment. Please try again.");
@@ -273,9 +279,9 @@ export default function Checkout({
 
   const subtotalRaw = cart.subtotal || 0;
   const taxesRaw = cart.tax_total || 0;
-  const selectedOptionDetails = (availableShippingOptions || []).find((o: any) =>
-    o.id === selectedShippingOption
-  );
+  const selectedOptionDetails = (availableShippingOptions || []).find((
+    o: any,
+  ) => o.id === selectedShippingOption);
   const shippingAmountRaw = selectedOptionDetails
     ? selectedOptionDetails.amount || 0
     : cart.shipping_total || 0;

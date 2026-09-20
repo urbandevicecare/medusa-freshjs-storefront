@@ -11,7 +11,9 @@ async function proxyRepairRequest(ctx: any) {
   const pubKey = Deno.env.get("MEDUSA_PUBLISHABLE_KEY") || "";
 
   // Reconstruct the target URL, preserving any query parameters
-  const targetUrl = `${backendUrl}/store/repairs/${path}${url.search}`;
+  const targetUrl = path
+    ? `${backendUrl}/store/repairs/${path}${url.search}`
+    : `${backendUrl}/store/repairs${url.search}`;
 
   console.debug(
     `[Catch-All Proxy] 🔄 Forwarding ${req.method} request to: ${targetUrl}`,
