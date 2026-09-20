@@ -68,8 +68,8 @@ Sitemap: ${origin}/sitemap.xml
 
   try {
     await Deno.mkdir("./static", { recursive: true });
-    await Deno.writeTextFile("./static/sitemap.xml", sitemap.trim());
-    await Deno.writeTextFile("./static/robots.txt", robots.trim());
+    await Deno.writeTextFile("./static/sitemap.xml", sitemap.trim() + "\n");
+    await Deno.writeTextFile("./static/robots.txt", robots.trim() + "\n");
     console.log(
       "[SEO Generator] Successfully wrote static/sitemap.xml and static/robots.txt!",
     );

@@ -25,6 +25,12 @@
       ]
     }
   },
+  "fmt": {
+    "exclude": [
+      "static/sitemap.xml",
+      "static/robots.txt"
+    ]
+  },
   "exclude": ["**/_fresh/*"],
   "imports": {
     "@/": "./",
