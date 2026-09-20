@@ -3,9 +3,9 @@
   "nodeModulesDir": "auto",
   "tasks": {
     "check": "deno fmt --check . && deno lint .",
-    "dev": "deno run -A --env --unstable-kv scripts/generate-seo.ts && deno run -A --env --unstable-kv npm:vite",
-    "build": "deno run -A --env --unstable-kv scripts/generate-seo.ts && deno run -A --env --unstable-kv npm:vite build",
-    "start": "deno run -A --env --unstable-kv scripts/generate-seo.ts && deno serve -A --env --unstable-kv _fresh/server.js",
+    "dev": "deno run -A --no-check --env --unstable-kv scripts/generate-seo.ts && deno run -A --no-check --env --unstable-kv npm:vite",
+    "build": "deno run -A --no-check --env --unstable-kv scripts/generate-seo.ts && deno run -A --no-check --env --unstable-kv npm:vite build",
+    "start": "deno run -A --no-check --env --unstable-kv scripts/generate-seo.ts && deno serve -A --no-check --env --unstable-kv _fresh/server.js",
     "update": "deno run -A -r jsr:@fresh/update .",
     "test": "deno test -A --unstable-kv tests/"
   },
