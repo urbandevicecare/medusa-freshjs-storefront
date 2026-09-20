@@ -2,8 +2,8 @@ name: Release
 
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - main
 
 jobs:
   build-and-release:
@@ -36,5 +36,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: release-${{ github.sha }}
+          name: Release ${{ github.sha }}
           files: storefront-release.zip
           generate_release_notes: true
