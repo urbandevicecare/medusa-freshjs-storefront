@@ -57,6 +57,7 @@ export default define.page(function RepairsPage({ state, data }) {
             </h2>
             <a
               href="/repairs/book"
+              f-client-nav={false}
               class="mr-4 md:mr-0 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition font-medium text-sm"
             >
               Book a Repair

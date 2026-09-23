@@ -29,6 +29,7 @@ export default function CustomerRepairsRoute() {
             </h1>
             <a
               href="/repairs/book"
+              f-client-nav={false}
               class="px-4 py-2 bg-slate-900 text-white rounded hover:bg-slate-800 transition"
             >
               Book New Repair

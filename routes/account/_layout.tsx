@@ -66,6 +66,7 @@ export default define.page(function AccountLayout({ Component, url, state }) {
                   <div class="mt-1 ml-4 space-y-1 border-l-2 border-gray-100 pl-3 animate-fade-in">
                     <a
                       href="/repairs/book"
+                      f-client-nav={false}
                       class={`block px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                         path === "/repairs/book"
                           ? "text-blue-700 bg-blue-50/50"
