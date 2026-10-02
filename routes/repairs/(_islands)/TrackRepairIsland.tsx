@@ -281,6 +281,7 @@ export default function TrackRepairIsland({
       case "ready":
         return 4;
       case "completed":
+      case "collected":
         return 5;
       case "cancelled":
         return -1;
@@ -304,6 +305,7 @@ export default function TrackRepairIsland({
       case "ready":
         return "Your repair is complete and your product is ready for delivery. It has passed all testing and packaging.";
       case "completed":
+      case "collected":
         return "Your product has been successfully delivered back to you. Thank you for choosing our service.";
       case "cancelled":
         return "This repair ticket has been cancelled.";
@@ -823,7 +825,7 @@ export default function TrackRepairIsland({
               )}
 
               {/* Invoice: Available when ready or completed */}
-              {["ready", "completed"].includes(ticket.status) && (
+              {["ready", "completed", "collected"].includes(ticket.status) && (
                 <button
                   onClick={() => handleDownloadDocument("invoice")}
                   className="flex flex-col items-center justify-center p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition text-center"
@@ -836,7 +838,7 @@ export default function TrackRepairIsland({
               )}
 
               {/* Receipt: Available when completed (assumed paid) */}
-              {ticket.status === "completed" && (
+              {["completed", "collected"].includes(ticket.status) && (
                 <button
                   onClick={() => handleDownloadDocument("receipt")}
                   className="flex flex-col items-center justify-center p-3 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition text-center"
@@ -966,6 +968,23 @@ export default function TrackRepairIsland({
                   Decline Repair
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* Action Required: Unpaid Balance */}
+          {["completed", "collected"].includes(ticket.status) &&
+            ticket.payment_status !== "captured" &&
+            ticket.payment_status !== "paid" && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-xl shadow-sm mt-4">
+              <h4 className="text-red-800 font-bold mb-2 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                Outstanding Balance
+              </h4>
+              <p className="text-red-800 text-sm">
+                Your repair is finished, but there is an outstanding balance on your account. Please settle the invoice or contact us to arrange payment.
+              </p>
             </div>
           )}
 
