@@ -4,10 +4,28 @@ import TrackRepairIsland from "./(_islands)/TrackRepairIsland.tsx";
 import { page } from "fresh";
 
 export const handler = define.handlers({
-  GET(ctx) {
+  async GET(ctx) {
     const backendUrl = Deno.env.get("MEDUSA_BACKEND_URL")!;
     const publishableKey = Deno.env.get("MEDUSA_PUBLISHABLE_KEY") || "";
-    const paystackPublicKey = Deno.env.get("PAYSTACK_PUBLIC_KEY") || "";
+    let paystackPublicKey = Deno.env.get("PAYSTACK_PUBLIC_KEY") || "";
+    
+    // Fetch settings from backend to get dynamic Paystack key
+    try {
+      const res = await fetch(`${backendUrl}/store/repairs/settings`, {
+        headers: {
+          "x-publishable-api-key": publishableKey,
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.settings?.paystack_enabled && data.settings?.paystack_public_key) {
+          paystackPublicKey = data.settings.paystack_public_key;
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch repair settings from backend:", e);
+    }
+    
     const isLoggedIn = Boolean((ctx.state as any).isLoggedIn);
 
     return page({ backendUrl, publishableKey, paystackPublicKey, isLoggedIn });
