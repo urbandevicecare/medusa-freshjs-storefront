@@ -22,7 +22,7 @@ export const handler = define.handlers({
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       };
-      
+
       if (publishableKey) {
         headers["x-publishable-api-key"] = publishableKey;
       }
