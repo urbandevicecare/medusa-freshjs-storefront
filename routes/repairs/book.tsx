@@ -39,8 +39,8 @@ export default define.page(function BookRepairRoute(props) {
             {/* Left Col: Form */}
             <div class="lg:col-span-8">
               <div class="mb-12 border-b border-black pb-8">
-                <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight leading-none text-slate-900 mb-6">
-                  Book a<br />Repair
+                <h1 class="text-5xl md:text-7xl font-[Oswald] uppercase tracking-tighter leading-none text-slate-900 mb-6">
+                  Book a Repair
                 </h1>
                 <p class="text-xl font-serif italic text-slate-500 max-w-2xl">
                   Provide your device details and we'll get it fixed as soon as

@@ -51,7 +51,7 @@ export default function BookRepairIsland() {
   };
 
   const inputClass =
-    "w-full px-4 py-3 bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-sans text-lg text-slate-900 placeholder:text-slate-400 transition-shadow";
+    "w-full px-3 py-2.5 bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-sans text-base text-slate-900 placeholder:text-slate-400 transition-shadow";
 
   if (success) {
     return (
