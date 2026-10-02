@@ -268,6 +268,8 @@ export default function TrackRepairIsland({
 
   const getStepperIndex = (status: string) => {
     switch (status) {
+      case "pending_dropoff":
+        return 0;
       case "received":
         return 0;
       case "diagnosing":
@@ -289,6 +291,8 @@ export default function TrackRepairIsland({
 
   const getStatusDescription = (status: string) => {
     switch (status) {
+      case "pending_dropoff":
+        return "Your repair ticket has been booked successfully. Please drop off your device or contact us to arrange a pickup.";
       case "received":
         return "Your product has been successfully picked up and delivered to our service center. We will begin diagnosis shortly.";
       case "diagnosing":
