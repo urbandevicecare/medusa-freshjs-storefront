@@ -16,13 +16,20 @@ export const handler = define.handlers({
 
       const body = await ctx.req.json();
       const backendUrl = Deno.env.get("MEDUSA_BACKEND_URL")!;
+      const publishableKey = Deno.env.get("MEDUSA_PUBLISHABLE_KEY");
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      };
+      
+      if (publishableKey) {
+        headers["x-publishable-api-key"] = publishableKey;
+      }
 
       const response = await fetch(`${backendUrl}/store/repairs`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
         body: JSON.stringify(body),
       });
 
