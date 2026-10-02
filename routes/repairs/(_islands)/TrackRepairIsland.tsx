@@ -231,9 +231,7 @@ export default function TrackRepairIsland({
 
       // 2. Open Paystack Modal using the strict access_code from the server
       const paystack = new (window as any).PaystackPop();
-      paystack.newTransaction({
-        key: paystackPublicKey,
-        access_code: initData.access_code,
+      paystack.resumeTransaction(initData.access_code, {
         onSuccess: async (transaction: any) => {
           try {
             const targetUrl = `/api/repairs/paystack/verify`;
