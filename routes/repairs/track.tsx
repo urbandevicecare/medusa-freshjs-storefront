@@ -63,7 +63,7 @@ export default define.page(function TrackRepairRoute(props) {
           content="Track your device repair ticket status."
         />
         <meta name="view-transition" content="same-origin" />
-        <script src="https://js.paystack.co/v1/inline.js"></script>
+        <script src="https://js.paystack.co/v2/inline.js"></script>
       </Head>
       <Partial name="repair-content">
         <div class="route-container">
