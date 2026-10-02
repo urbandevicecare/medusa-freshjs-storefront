@@ -50,10 +50,13 @@ export default function BookRepairIsland() {
     }
   };
 
+  const inputClass =
+    "w-full px-4 py-3 bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-sans text-lg text-slate-900 placeholder:text-slate-400 transition-shadow";
+
   if (success) {
     return (
-      <div class="p-8 bg-green-50 border border-green-200 text-green-800">
-        <h3 class="text-xl font-[Oswald] uppercase tracking-tighter mb-2">
+      <div class="p-8 bg-green-50 border border-green-200 rounded-md text-green-800">
+        <h3 class="text-xl font-bold tracking-tight mb-2">
           Success!
         </h3>
         <p class="font-serif italic text-green-700">
@@ -66,7 +69,7 @@ export default function BookRepairIsland() {
   return (
     <form onSubmit={handleSubmit} class="space-y-12">
       {error && (
-        <div class="p-6 bg-red-50 border border-red-200 text-red-600">
+        <div class="p-6 bg-red-50 border border-red-200 rounded-md text-red-600">
           <p class="font-bold text-xs uppercase tracking-widest mb-1">Error</p>
           <p class="font-serif italic text-sm">{error}</p>
         </div>
@@ -86,7 +89,7 @@ export default function BookRepairIsland() {
                 value={brand}
                 onChange={(e) =>
                   setBrand((e.target as HTMLSelectElement).value)}
-                class="w-full px-0 py-3 bg-transparent border-0 border-b border-slate-300 focus:ring-0 focus:border-black outline-none font-sans text-lg text-slate-900 transition-colors rounded-none appearance-none"
+                class={inputClass}
                 required
               >
                 <option value="Apple">Apple</option>
@@ -105,7 +108,7 @@ export default function BookRepairIsland() {
                 onInput={(e) =>
                   setModelName((e.target as HTMLInputElement).value)}
                 placeholder="e.g. iPhone 15 Pro"
-                class="w-full px-0 py-3 bg-transparent border-0 border-b border-slate-300 focus:ring-0 focus:border-black outline-none font-sans text-lg text-slate-900 placeholder:text-slate-300 transition-colors rounded-none"
+                class={inputClass}
                 required
               />
             </div>
@@ -119,7 +122,7 @@ export default function BookRepairIsland() {
                 onInput={(e) =>
                   setSerialNumber((e.target as HTMLInputElement).value)}
                 placeholder="Required for parts lookup"
-                class="w-full px-0 py-3 bg-transparent border-0 border-b border-slate-300 focus:ring-0 focus:border-black outline-none font-mono text-lg text-slate-900 uppercase placeholder:text-slate-300 transition-colors rounded-none"
+                class={`${inputClass} font-mono uppercase`}
                 required
               />
             </div>
@@ -141,7 +144,7 @@ export default function BookRepairIsland() {
                   setIssueDescription((e.target as HTMLTextAreaElement).value)}
                 rows={4}
                 placeholder="Describe the problem in detail..."
-                class="w-full px-0 py-3 bg-transparent border-0 border-b border-slate-300 focus:ring-0 focus:border-black outline-none resize-y text-slate-900 font-sans text-lg placeholder:text-slate-300 transition-colors rounded-none"
+                class={`${inputClass} resize-y`}
                 required
               />
             </div>
@@ -155,7 +158,7 @@ export default function BookRepairIsland() {
                 onInput={(e) =>
                   setAccessories((e.target as HTMLInputElement).value)}
                 placeholder="e.g. Charger, Case"
-                class="w-full px-0 py-3 bg-transparent border-0 border-b border-slate-300 focus:ring-0 focus:border-black outline-none font-sans text-lg text-slate-900 placeholder:text-slate-300 transition-colors rounded-none"
+                class={inputClass}
               />
             </div>
           </div>
@@ -166,7 +169,7 @@ export default function BookRepairIsland() {
         <button
           type="submit"
           disabled={loading}
-          class="w-full md:w-auto px-12 py-5 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-slate-800 transition-colors disabled:bg-slate-300 disabled:text-slate-500"
+          class="w-full md:w-auto px-12 py-5 bg-black text-white rounded-md text-xs font-bold uppercase tracking-widest hover:bg-slate-800 transition-colors disabled:bg-slate-300 disabled:text-slate-500"
         >
           {loading ? "Submitting..." : "Submit Repair Request"}
         </button>
