@@ -835,20 +835,40 @@ export default function TrackRepairIsland({
                 </button>
               )}
 
-              {/* Receipt: Available when completed (assumed paid) */}
-              {["completed", "collected"].includes(ticket.status) && (
-                <button
-                  onClick={() => handleDownloadDocument("receipt")}
-                  className="flex flex-col items-center justify-center p-3 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition text-center"
-                >
-                  <span className="font-semibold text-green-700 mb-1">
-                    Receipt
-                  </span>
-                  <span className="text-xs text-green-600">
-                    Proof of Payment
-                  </span>
-                </button>
-              )}
+              {/* Receipt: Available when paid */}
+              {(() => {
+                const isPaid = ticket.payment_status === "captured" ||
+                  ticket.payment_status === "paid" ||
+                  ticket.status === "completed";
+                return isPaid
+                  ? (
+                    <button
+                      onClick={() => handleDownloadDocument("receipt")}
+                      className="flex flex-col items-center justify-center p-3 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition text-center"
+                    >
+                      <span className="font-semibold text-green-700 mb-1">
+                        Receipt
+                      </span>
+                      <span className="text-xs text-green-600">
+                        Proof of Payment
+                      </span>
+                    </button>
+                  )
+                  : (
+                    <button
+                      disabled
+                      title="Available once payment is captured"
+                      className="flex flex-col items-center justify-center p-3 bg-gray-50 border border-gray-200 rounded-lg opacity-60 cursor-not-allowed text-center"
+                    >
+                      <span className="font-semibold text-gray-500 mb-1">
+                        Receipt
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        Pending Payment
+                      </span>
+                    </button>
+                  );
+              })()}
             </div>
           </div>
 
@@ -1024,7 +1044,7 @@ export default function TrackRepairIsland({
           )}
 
           {/* RESTORED: Customer-visible Notes */}
-          {isLoggedIn && ticket.notes &&
+          {ticket.notes &&
             ticket.notes.filter((n: any) => !n.is_internal).length > 0 && (
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sm:p-8">
               <h3 className="text-xl font-bold text-slate-900 mb-6">Updates</h3>
