@@ -1,5 +1,8 @@
 # Changelog
 
+### v1.3.1
+- **Feature**: Added a native URL shortener proxy at `/r/[code]` to securely relay abbreviated links (used in SMS and WhatsApp notifications) directly to the backend's link resolver, completely masking the backend domain.
+
 ### v1.3.0 (Current)
 
 - **Enhancement**: Removed the `PAYMENT_PROVIDERS` environment variable in favor
