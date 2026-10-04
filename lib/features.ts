@@ -8,9 +8,8 @@ export async function isPaystackInstalled(): Promise<boolean> {
       try {
         const { payment_providers } = await medusa.store.payment
           .listPaymentProviders({});
-        return payment_providers?.some((p: any) =>
-          p.id.includes("paystack")
-        ) ?? false;
+        return payment_providers?.some((p: any) => p.id.includes("paystack")) ??
+          false;
       } catch (e) {
         console.warn("Failed to check Paystack installation", e);
         return false;
