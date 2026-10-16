@@ -477,7 +477,7 @@ export default function TrackRepairIsland({
           </div>
 
           {/* Issue Details */}
-          {ticket.issue_description && isLoggedIn && (
+          {ticket.issue_description && (isLoggedIn || Boolean(initialToken)) && (
             <div className="mt-16 py-10 border-y border-slate-200 text-left">
               <div className="flex items-baseline gap-2 mb-2">
                 <span className="text-sm font-semibold uppercase tracking-wider text-slate-700">
@@ -493,7 +493,7 @@ export default function TrackRepairIsland({
           {/* Two Column Layout: Cost & Messages */}
           <div className="flex flex-col lg:flex-row gap-8 items-start w-full">
             {/* Cost Information */}
-            {isLoggedIn &&
+            {(isLoggedIn || Boolean(initialToken)) &&
               (ticket.total_estimate > 0 || ticket.total_actual > 0) && (
               <>
                 <div className="flex-1 w-full">
@@ -628,7 +628,7 @@ export default function TrackRepairIsland({
             )}
 
             {/* RESTORED: Chat Messages Interface */}
-            {isLoggedIn && (
+            {(isLoggedIn || Boolean(initialToken) || (ticket.updates && ticket.updates.length > 0)) && (
               <div className="flex-1 w-full">
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-4">
                   Messages
@@ -684,76 +684,82 @@ export default function TrackRepairIsland({
                     </p>
                   )}
 
-                <form
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    const form = e.target as HTMLFormElement;
-                    const input = form.elements.namedItem(
-                      "message",
-                    ) as HTMLInputElement;
-                    const message = input.value.trim();
+                {isLoggedIn || Boolean(initialToken) ? (
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      const form = e.target as HTMLFormElement;
+                      const input = form.elements.namedItem(
+                        "message",
+                      ) as HTMLInputElement;
+                      const message = input.value.trim();
 
-                    if (!message) return;
+                      if (!message) return;
 
-                    try {
-                      const submitBtn = form.querySelector(
-                        'button[type="submit"]',
-                      ) as HTMLButtonElement;
-                      submitBtn.disabled = true;
-                      submitBtn.textContent = "Sending...";
+                      try {
+                        const submitBtn = form.querySelector(
+                          'button[type="submit"]',
+                        ) as HTMLButtonElement;
+                        submitBtn.disabled = true;
+                        submitBtn.textContent = "Sending...";
 
-                      const bodyData: any = { message };
-                      if (initialToken) {
-                        bodyData.token = initialToken;
+                        const bodyData: any = { message };
+                        if (initialToken) {
+                          bodyData.token = initialToken;
+                        }
+
+                        const response = await fetch(
+                          `/api/repairs/${ticket.id}/messages`,
+                          {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(bodyData),
+                          },
+                        );
+
+                        if (!response.ok) {
+                          throw new Error("Failed to send message");
+                        }
+
+                        if (initialToken) {
+                          handleTokenSearch(initialToken);
+                        } else {
+                          handleSearch(new Event("submit") as any);
+                        }
+
+                        form.reset();
+                      } catch (err) {
+                        alert("Failed to send message");
+                        console.error(err);
+                      } finally {
+                        const submitBtn = form.querySelector(
+                          'button[type="submit"]',
+                        ) as HTMLButtonElement;
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = "Send Reply";
                       }
-
-                      const response = await fetch(
-                        `/api/repairs/${ticket.id}/messages`,
-                        {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify(bodyData),
-                        },
-                      );
-
-                      if (!response.ok) {
-                        throw new Error("Failed to send message");
-                      }
-
-                      if (initialToken) {
-                        handleTokenSearch(initialToken);
-                      } else {
-                        handleSearch(new Event("submit") as any);
-                      }
-
-                      form.reset();
-                    } catch (err) {
-                      alert("Failed to send message");
-                      console.error(err);
-                    } finally {
-                      const submitBtn = form.querySelector(
-                        'button[type="submit"]',
-                      ) as HTMLButtonElement;
-                      submitBtn.disabled = false;
-                      submitBtn.textContent = "Send Reply";
-                    }
-                  }}
-                  className="flex gap-3"
-                >
-                  <input
-                    type="text"
-                    name="message"
-                    placeholder="Type your message..."
-                    className="flex-1 px-4 py-2 border border-slate-200 rounded text-sm focus:outline-none focus:border-slate-400 transition-colors"
-                    required
-                  />
-                  <button
-                    type="submit"
-                    className="px-5 py-2 bg-slate-800 text-white text-sm font-medium rounded hover:bg-slate-700 disabled:bg-slate-300 disabled:cursor-not-allowed whitespace-nowrap transition-colors"
+                    }}
+                    className="flex gap-3"
                   >
-                    Send Reply
-                  </button>
-                </form>
+                    <input
+                      type="text"
+                      name="message"
+                      placeholder="Type your message..."
+                      className="flex-1 px-4 py-2 border border-slate-200 rounded text-sm focus:outline-none focus:border-slate-400 transition-colors"
+                      required
+                    />
+                    <button
+                      type="submit"
+                      className="px-5 py-2 bg-slate-800 text-white text-sm font-medium rounded hover:bg-slate-700 disabled:bg-slate-300 disabled:cursor-not-allowed whitespace-nowrap transition-colors"
+                    >
+                      Send Reply
+                    </button>
+                  </form>
+                ) : (
+                  <p className="text-xs text-slate-400 italic">
+                    To send a reply to the technician, please use the tracking link sent to your phone/email or log in.
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -761,7 +767,7 @@ export default function TrackRepairIsland({
           {/* Accessories & Documents Group */}
           <div className="flex flex-col gap-4 border-t border-slate-200 pt-10">
             {/* Included Accessories */}
-            {ticket.accessories && isLoggedIn && (
+            {ticket.accessories && (isLoggedIn || Boolean(initialToken)) && (
               <div className="text-left">
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3">
                   Included Accessories & Downloadable documents
@@ -1043,25 +1049,53 @@ export default function TrackRepairIsland({
             </div>
           )}
 
-          {/* RESTORED: Customer-visible Notes */}
-          {ticket.notes &&
-            ticket.notes.filter((n: any) => !n.is_internal).length > 0 && (
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sm:p-8">
-              <h3 className="text-xl font-bold text-slate-900 mb-6">Updates</h3>
-              <div className="space-y-3">
-                {ticket.notes
-                  .filter((note: any) => !note.is_internal)
-                  .map((note: any) => (
-                    <div key={note.id} className="p-4 bg-gray-50 rounded">
-                      <p className="text-sm text-gray-500 mb-1">
-                        {new Date(note.created_at).toLocaleString()}
-                      </p>
-                      <p>{note.content}</p>
+          {/* RESTORED: Customer-visible Notes and Updates */}
+          {(() => {
+            const publicNotes = (ticket.notes || [])
+              .filter((n: any) => !n.is_internal)
+              .map((n: any) => ({
+                id: n.id,
+                type: "note",
+                author: "Technician Note",
+                text: n.content,
+                date: n.created_at,
+              }));
+
+            const publicUpdates = (ticket.updates || []).map((u: any) => ({
+              id: u.id,
+              type: "message",
+              author: u.author_type === "customer" ? "You (Message)" : "Technician Message",
+              text: u.message,
+              date: u.created_at,
+            }));
+
+            const combined = [...publicNotes, ...publicUpdates].sort(
+              (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()
+            );
+
+            if (combined.length === 0) return null;
+
+            return (
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sm:p-8">
+                <h3 className="text-xl font-bold text-slate-900 mb-6">Updates</h3>
+                <div className="space-y-3">
+                  {combined.map((item: any) => (
+                    <div key={item.id} className="p-4 bg-gray-50 rounded border border-slate-100">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
+                          {item.author}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {new Date(item.date).toLocaleString()}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-800 whitespace-pre-wrap">{item.text}</p>
                     </div>
                   ))}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
       )}
     </div>
