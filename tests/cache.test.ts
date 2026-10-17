@@ -8,7 +8,8 @@ Deno.test("withCache - executes fetcher on first call", async () => {
     return Promise.resolve({ data: "test" });
   };
 
-  const result = await withCache(["test", "key1"], mockFetcher);
+  const uniqueKey = `key1_${crypto.randomUUID()}`;
+  const result = await withCache(["test", uniqueKey], mockFetcher);
   assertEquals(result.data, "test");
   assertEquals(callCount, 1);
 });
@@ -20,14 +21,15 @@ Deno.test("withCache - returns cached value on second call", async () => {
     return Promise.resolve({ data: "cached_test" });
   };
 
+  const uniqueKey = `key2_${crypto.randomUUID()}`;
   // First call populates cache
-  await withCache(["test", "key2"], mockFetcher);
+  await withCache(["test", uniqueKey], mockFetcher);
 
   // Wait slightly to ensure KV is updated (KV writes are fast but good practice)
   await new Promise((r) => setTimeout(r, 50));
 
   // Second call should hit cache
-  const result2 = await withCache(["test", "key2"], mockFetcher);
+  const result2 = await withCache(["test", uniqueKey], mockFetcher);
 
   assertEquals(result2.data, "cached_test");
   // Call count should still be 1!
@@ -41,14 +43,15 @@ Deno.test("withCache - expires cache correctly", async () => {
     return Promise.resolve({ data: "expire_test" });
   };
 
+  const uniqueKey = `key3_${crypto.randomUUID()}`;
   // Cache with 10ms TTL
-  await withCache(["test", "key3"], mockFetcher, 10);
+  await withCache(["test", uniqueKey], mockFetcher, 10);
 
   // Wait for TTL to expire
   await new Promise((r) => setTimeout(r, 50));
 
   // Second call should trigger fetcher again
-  await withCache(["test", "key3"], mockFetcher, 10);
+  await withCache(["test", uniqueKey], mockFetcher, 10);
 
   assertEquals(callCount, 2);
 });

@@ -2,3 +2,5 @@ node_modules/
 _fresh/
 .env
 .DS_Store
+ratings.db-shm
+ratings.db-wal

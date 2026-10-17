@@ -3,9 +3,13 @@
 /**
  * Generates an HMAC SHA-256 hash for a given order ID using a shared secret.
  */
-export async function generateOrderHash(orderId: string): Promise<string> {
+export async function generateOrderHash(
+  orderId: string,
+  customSecret?: string,
+): Promise<string> {
   // Use publishable key as the secret, or fallback to a default if not set
-  const secretKeyString = Deno.env.get("MEDUSA_PUBLISHABLE_KEY") ||
+  const secretKeyString = customSecret ||
+    Deno.env.get("MEDUSA_PUBLISHABLE_KEY") ||
     "super_secret_fallback_key";
 
   const encoder = new TextEncoder();
@@ -45,5 +49,14 @@ export async function verifyOrderHash(
   providedHash: string,
 ): Promise<boolean> {
   const expectedHash = await generateOrderHash(orderId);
-  return expectedHash === providedHash;
+  if (expectedHash === providedHash) return true;
+
+  // Fallback check against default key in case environment was unset during generation
+  const fallbackHash = await generateOrderHash(
+    orderId,
+    "super_secret_fallback_key",
+  );
+  if (fallbackHash === providedHash) return true;
+
+  return false;
 }

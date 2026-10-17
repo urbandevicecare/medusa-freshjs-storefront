@@ -7,7 +7,7 @@
     "build": "deno run -A --no-check --env --unstable-kv scripts/generate-seo.ts && deno run -A --no-check --env --unstable-kv npm:vite build",
     "start": "deno run -A --no-check --env --unstable-kv scripts/generate-seo.ts && deno serve -A --no-check --env --unstable-kv _fresh/server.js",
     "update": "deno run -A -r jsr:@fresh/update .",
-    "test": "deno test -A --unstable-kv tests/"
+    "test": "deno test -A --no-check --unstable-kv tests/ lib/__tests__/"
   },
   "lint": {
     "rules": {

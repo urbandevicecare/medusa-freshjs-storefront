@@ -3,13 +3,20 @@ import { withCache } from "./cache.ts";
 
 export async function isPaystackInstalled(): Promise<boolean> {
   return await withCache(
-    ["medusa", "feature", "paystack_v2"],
+    ["medusa", "feature", "paystack_v3"],
     async () => {
       try {
-        const { payment_providers } = await medusa.store.payment
-          .listPaymentProviders({});
-        return payment_providers?.some((p: any) => p.id.includes("paystack")) ??
-          false;
+        const publishableKey = Deno.env.get("MEDUSA_PUBLISHABLE_KEY") || "";
+        const response = await fetch(`${medusaUrl}/store/paystack/stk-push`, {
+          method: "OPTIONS",
+          headers: publishableKey
+            ? { "x-publishable-api-key": publishableKey }
+            : {},
+        });
+        if (response.status === 404) {
+          return false;
+        }
+        return true;
       } catch (e) {
         console.warn("Failed to check Paystack installation", e);
         return false;
