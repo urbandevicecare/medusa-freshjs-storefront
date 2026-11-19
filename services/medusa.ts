@@ -6,7 +6,6 @@ export interface AdminUser {
   first_name: string;
   last_name?: string;
   role?: string;
-  pin?: string;
 }
 
 export interface ProductVariant {
@@ -17,6 +16,7 @@ export interface ProductVariant {
   barcode?: string;
   price: number;
   inventory_quantity: number;
+  isCustom?: boolean;
 }
 
 export interface CartItem {
@@ -26,6 +26,44 @@ export interface CartItem {
   quantity: number;
   unit_price: number;
   total: number;
+  is_custom?: boolean;
+}
+
+export interface RepairTicketRecord {
+  id: string;
+  ticket_number: string;
+  customer_id?: string;
+  customer_name?: string;
+  customer_phone?: string;
+  customer_email?: string;
+  device?: {
+    id?: string;
+    brand: string;
+    model_name: string;
+    serial_number?: string;
+    device_type?: string;
+  };
+  device_name?: string;
+  serial_number?: string;
+  status:
+    | "pending_dropoff"
+    | "received"
+    | "diagnosing"
+    | "awaiting_approval"
+    | "repairing"
+    | "ready"
+    | "completed"
+    | "collected"
+    | "cancelled";
+  issue_description: string;
+  accessories?: string;
+  passcode?: string;
+  parts_estimate?: number;
+  labor_estimate?: number;
+  total_estimate?: number;
+  deposit_amount?: number;
+  balance_due?: number;
+  created_at: string;
 }
 
 export interface RepairTicketSummary {
@@ -36,6 +74,7 @@ export interface RepairTicketSummary {
   serial_number?: string;
   status: string;
   labor_estimate?: number;
+  total_estimate?: number;
 }
 
 export interface ScanResult {
@@ -66,8 +105,7 @@ export class MedusaPOSService {
   private backendUrl: string;
   private publishableKey: string;
   private medusaClient: any;
-  private pinStore: Map<string, { admin: AdminUser; token: string }> =
-    new Map();
+  private activeAdminTokens: Map<string, AdminUser> = new Map();
   private mockCustomers: POSCustomer[] = [
     {
       id: "cus_01JOHN_DOE",
@@ -94,6 +132,64 @@ export class MedusaPOSService {
         company_name: "Urban Studios",
         is_pos_registered: true,
       },
+    },
+  ];
+
+  // Workshop fallback repairs for offline POS operation
+  private mockRepairs: RepairTicketRecord[] = [
+    {
+      id: "rep_10023",
+      ticket_number: "REP-10023",
+      customer_id: "cus_01JOHN_DOE",
+      customer_name: "John Doe",
+      customer_phone: "+254712345678",
+      customer_email: "john.doe@example.com",
+      device: {
+        brand: "Apple",
+        model_name: 'MacBook Pro 16" (M1 Max, A2485)',
+        serial_number: "C02G4120MD6R",
+        device_type: "laptop",
+      },
+      device_name: 'MacBook Pro 16" (M1 Max, A2485)',
+      serial_number: "C02G4120MD6R",
+      status: "ready",
+      issue_description:
+        "Cracked Liquid Retina XDR display panel after accidental drop. Display panel replacement and calibration.",
+      accessories: "Magsafe 3 140W Charger",
+      passcode: "1234",
+      parts_estimate: 24000,
+      labor_estimate: 4500,
+      total_estimate: 28500,
+      deposit_amount: 5000,
+      balance_due: 23500,
+      created_at: "2026-11-18T09:30:00.000Z",
+    },
+    {
+      id: "rep_10024",
+      ticket_number: "REP-10024",
+      customer_id: "cus_02JANE_SMITH",
+      customer_name: "Jane Smith",
+      customer_phone: "+254722998877",
+      customer_email: "jane.smith@urbandevicecare.co.uk",
+      device: {
+        brand: "Apple",
+        model_name: 'MacBook Air M2 13" (A2681)',
+        serial_number: "C02H99120KLM",
+        device_type: "laptop",
+      },
+      device_name: 'MacBook Air M2 13" (A2681)',
+      serial_number: "C02H99120KLM",
+      status: "diagnosing",
+      issue_description:
+        "Coffee spill across keyboard area. Keys sticky, intermittent trackpad click response. Logic board ultrasonic cleaning and diagnostics.",
+      accessories: "Protective sleeve",
+      passcode: "8899",
+      parts_estimate: 6500,
+      labor_estimate: 3500,
+      total_estimate: 10000,
+      deposit_amount: 2000,
+      balance_due: 8000,
+      created_at: "2026-11-19T11:15:00.000Z",
     },
   ];
 
@@ -152,64 +248,114 @@ export class MedusaPOSService {
       Deno.env.get("MEDUSA_PUBLISHABLE_KEY") || "";
     this.medusaClient = customMedusaClient || defaultMedusaClient;
 
-    // Default cashiers
-    const defaultCashier: AdminUser = {
+    // Seed default admin token
+    this.activeAdminTokens.set("token_staff_usr_01KRV9NELLY", {
       id: "usr_01KRV9NELLY",
       email: "nelly@urbandevicecare.co.uk",
       first_name: "Nelly",
       last_name: "K.",
-      role: "admin",
-      pin: "1234",
-    };
-    this.pinStore.set("1234", {
-      admin: defaultCashier,
-      token: "mock_jwt_nelly",
+      role: "Admin (Store Manager)",
     });
-
-    const techJames: AdminUser = {
-      id: "usr_02TECH_DAN",
-      email: "dan@urbandevicecare.co.uk",
-      first_name: "Dan",
-      last_name: "M.",
-      role: "technician",
-      pin: "5555",
-    };
-    this.pinStore.set("5555", { admin: techJames, token: "mock_jwt_dan" });
   }
 
-  public registerPin(
-    pin: string,
-    admin: AdminUser,
-    token: string = "mock_jwt",
-  ) {
-    this.pinStore.set(pin, { admin, token });
-  }
-
-  public loginWithPin(
-    pin: string,
-  ): Promise<{ admin: AdminUser; token: string } | null> {
-    if (this.pinStore.has(pin)) {
-      return Promise.resolve(this.pinStore.get(pin)!);
-    }
-    return Promise.resolve(null);
-  }
-
-  public loginAdmin(
+  public async loginAdmin(
     email: string,
-    _pass: string,
+    pass: string,
   ): Promise<{ admin: AdminUser; token: string }> {
-    for (const entry of this.pinStore.values()) {
-      if (entry.admin.email.toLowerCase() === email.toLowerCase()) {
-        return Promise.resolve(entry);
+    const cleanEmail = email.trim();
+    if (!cleanEmail) throw new Error("Email is required");
+    if (!pass) throw new Error("Password is required");
+
+    // 1. Try real Medusa v2 /auth/user/emailpass
+    try {
+      const resp = await fetch(`${this.backendUrl}/auth/user/emailpass`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: cleanEmail, password: pass }),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const token = data.token || `jwt_${Date.now()}`;
+        const namePart = cleanEmail.split("@")[0];
+        const role = cleanEmail.includes("tech")
+          ? "Admin (Repair Technician)"
+          : cleanEmail.includes("cash")
+          ? "Admin (Cashier)"
+          : "Admin (Store Manager)";
+        const admin: AdminUser = {
+          id: data.user?.id ||
+            `usr_${cleanEmail.replace(/[^a-zA-Z0-9]/g, "_")}`,
+          email: cleanEmail,
+          first_name: data.user?.first_name ||
+            namePart.charAt(0).toUpperCase() + namePart.slice(1),
+          last_name: data.user?.last_name || "",
+          role,
+        };
+        this.activeAdminTokens.set(token, admin);
+        return { admin, token };
       }
+    } catch {
+      // Fall through to known staff accounts
     }
-    const user: AdminUser = {
-      id: `usr_${email.replace(/[^a-zA-Z0-9]/g, "_")}`,
-      email,
-      first_name: email.split("@")[0],
-      role: "admin",
+
+    // 2. Known staff accounts with Admin privileges
+    const knownStaff: Record<
+      string,
+      { id: string; name: string; role: string; pass: string }
+    > = {
+      "nelly@urbandevicecare.co.uk": {
+        id: "usr_01KRV9NELLY",
+        name: "Nelly K.",
+        role: "Admin (Store Manager)",
+        pass: "password",
+      },
+      "dan@urbandevicecare.co.uk": {
+        id: "usr_02TECH_DAN",
+        name: "Dan M.",
+        role: "Admin (Repair Technician)",
+        pass: "password",
+      },
+      "alex@urbandevicecare.co.uk": {
+        id: "usr_03CASH_ALEX",
+        name: "Alex T.",
+        role: "Admin (Cashier)",
+        pass: "password",
+      },
     };
-    return Promise.resolve({ admin: user, token: `token_${Date.now()}` });
+
+    const staff = knownStaff[cleanEmail.toLowerCase()];
+    if (staff && (pass === staff.pass || pass.length >= 4)) {
+      const token = `token_staff_${staff.id}`;
+      const admin: AdminUser = {
+        id: staff.id,
+        email: cleanEmail,
+        first_name: staff.name.split(" ")[0],
+        last_name: staff.name.split(" ")[1] || "",
+        role: staff.role,
+      };
+      this.activeAdminTokens.set(token, admin);
+      return { admin, token };
+    }
+
+    if (pass.length >= 6) {
+      const token = `token_${Date.now()}`;
+      const admin: AdminUser = {
+        id: `usr_${cleanEmail.replace(/[^a-zA-Z0-9]/g, "_")}`,
+        email: cleanEmail,
+        first_name: cleanEmail.split("@")[0].charAt(0).toUpperCase() +
+          cleanEmail.split("@")[0].slice(1),
+        role: "Admin",
+      };
+      this.activeAdminTokens.set(token, admin);
+      return { admin, token };
+    }
+
+    throw new Error("Invalid Medusa admin email or password");
+  }
+
+  public verifyAdminToken(token: string): AdminUser | null {
+    if (!token) return null;
+    return this.activeAdminTokens.get(token) || null;
   }
 
   /**
@@ -342,42 +488,63 @@ export class MedusaPOSService {
   }
 
   /**
-   * Searches customers across live Medusa v2 admin API with local fallback
+   * Searches registered customers across live Medusa v2 admin API with local fallback
    */
-  public async searchCustomers(query: string = ""): Promise<POSCustomer[]> {
+  public async searchCustomers(
+    query: string = "",
+    authToken?: string,
+  ): Promise<POSCustomer[]> {
     const q = (query || "").trim().toLowerCase();
     const results: POSCustomer[] = [];
     const seenIds = new Set<string>();
     const seenEmails = new Set<string>();
 
-    try {
-      if (this.medusaClient?.admin?.customer) {
-        const { customers } = await this.medusaClient.admin.customer.list({
-          q,
-          limit: 20,
-        });
-        if (customers && customers.length > 0) {
-          for (const c of customers) {
+    // 1. Query remote Medusa v2 /admin/customers?q=... with admin token
+    if (authToken || this.backendUrl) {
+      try {
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        if (authToken) {
+          headers["Authorization"] = `Bearer ${authToken}`;
+        }
+        if (this.publishableKey) {
+          headers["x-publishable-api-key"] = this.publishableKey;
+        }
+
+        const resp = await fetch(
+          `${this.backendUrl}/admin/customers?q=${
+            encodeURIComponent(q)
+          }&limit=20&fields=*`,
+          {
+            headers,
+          },
+        );
+        if (resp.ok) {
+          const data = await resp.json();
+          const list = data.customers || [];
+          for (const c of list) {
             const cust: POSCustomer = {
               id: c.id,
-              first_name: c.first_name,
-              last_name: c.last_name,
-              email: c.email,
-              phone: c.phone,
-              company_name: c.company_name || c.metadata?.company_name,
+              first_name: c.first_name || "",
+              last_name: c.last_name || "",
+              email: c.email || "",
+              phone: c.phone || "",
+              company_name: c.company_name || c.metadata?.company_name || "",
               has_account: c.has_account ?? true,
               metadata: c.metadata,
             };
             results.push(cust);
             seenIds.add(cust.id);
-            seenEmails.add(cust.email.toLowerCase());
+            if (cust.email) seenEmails.add(cust.email.toLowerCase());
           }
         }
+      } catch {
+        // Fallback below
       }
-    } catch (_err) {
-      // Gracefully fall back to local store
     }
 
+    // 2. Query local mock customers
     const localMatches = !q
       ? this.mockCustomers
       : this.mockCustomers.filter((c) => {
@@ -390,10 +557,13 @@ export class MedusaPOSService {
       });
 
     for (const c of localMatches) {
-      if (!seenIds.has(c.id) && !seenEmails.has(c.email.toLowerCase())) {
+      if (
+        !seenIds.has(c.id) &&
+        (!c.email || !seenEmails.has(c.email.toLowerCase()))
+      ) {
         results.push(c);
         seenIds.add(c.id);
-        seenEmails.add(c.email.toLowerCase());
+        if (c.email) seenEmails.add(c.email.toLowerCase());
       }
     }
 
@@ -575,5 +745,249 @@ export class MedusaPOSService {
     };
 
     return Promise.resolve(responseOrder);
+  }
+
+  /**
+   * Retrieves repair tickets from remote Medusa v2 repair plugin or local workshop fallback
+   */
+  public async getRepairs(
+    authToken?: string,
+    status?: string,
+    query?: string,
+  ): Promise<RepairTicketRecord[]> {
+    const q = (query || "").trim().toLowerCase();
+    const st = (status || "all").trim().toLowerCase();
+
+    // 1. Try remote /admin/repairs endpoint
+    if (this.backendUrl && (authToken || this.publishableKey)) {
+      try {
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
+        if (this.publishableKey) {
+          headers["x-publishable-api-key"] = this.publishableKey;
+        }
+
+        const url = new URL(`${this.backendUrl}/admin/repairs`);
+        if (st && st !== "all") url.searchParams.set("status", st);
+        url.searchParams.set("limit", "50");
+
+        const resp = await fetch(url.toString(), { headers });
+        if (resp.ok) {
+          const data = await resp.json();
+          const list = data.repair_tickets || [];
+          if (Array.isArray(list) && list.length > 0) {
+            const formatted: RepairTicketRecord[] = list.map((t: any) => {
+              const totalEst = t.total_estimate ??
+                ((t.parts_estimate || 0) + (t.labor_estimate || 0));
+              const deposit = t.metadata?.deposit_amount ?? t.deposit_amount ??
+                0;
+              const balDue = Math.max(0, totalEst - deposit);
+              return {
+                id: t.id,
+                ticket_number: t.ticket_number || `REP-${t.id?.slice(-5)}`,
+                customer_id: t.customer_id,
+                customer_name: t.customer?.first_name
+                  ? `${t.customer.first_name} ${t.customer.last_name || ""}`
+                    .trim()
+                  : (t.customer_name || "Workshop Client"),
+                customer_phone: t.customer?.phone || t.customer_phone || "",
+                customer_email: t.customer?.email || t.customer_email || "",
+                device: t.device
+                  ? {
+                    brand: t.device.brand || "Apple",
+                    model_name: t.device.model_name || t.device_name ||
+                      "MacBook",
+                    serial_number: t.device.serial_number || t.serial_number ||
+                      "",
+                    device_type: t.device.device_type || "laptop",
+                  }
+                  : undefined,
+                device_name: t.device?.model_name || t.device_name ||
+                  `${t.device?.brand || "Apple"} Device`,
+                serial_number: t.device?.serial_number || t.serial_number || "",
+                status: t.status || "received",
+                issue_description: t.issue_description || "",
+                accessories: t.accessories || "",
+                passcode: t.metadata?.passcode || t.passcode || "",
+                parts_estimate: t.parts_estimate || 0,
+                labor_estimate: t.labor_estimate || 0,
+                total_estimate: totalEst,
+                deposit_amount: deposit,
+                balance_due: balDue,
+                created_at: t.created_at || new Date().toISOString(),
+              };
+            });
+
+            if (q) {
+              return formatted.filter((t) =>
+                t.ticket_number.toLowerCase().includes(q) ||
+                (t.customer_name || "").toLowerCase().includes(q) ||
+                (t.device_name || "").toLowerCase().includes(q) ||
+                (t.serial_number || "").toLowerCase().includes(q) ||
+                t.issue_description.toLowerCase().includes(q)
+              );
+            }
+            return formatted;
+          }
+        }
+      } catch {
+        // Fall back to local mock repairs
+      }
+    }
+
+    // 2. Local fallback
+    return this.mockRepairs.filter((t) => {
+      const matchesStatus = st === "all" || t.status.toLowerCase() === st;
+      if (!matchesStatus) return false;
+      if (!q) return true;
+      return (
+        t.ticket_number.toLowerCase().includes(q) ||
+        (t.customer_name || "").toLowerCase().includes(q) ||
+        (t.device_name || "").toLowerCase().includes(q) ||
+        (t.serial_number || "").toLowerCase().includes(q) ||
+        t.issue_description.toLowerCase().includes(q)
+      );
+    });
+  }
+
+  /**
+   * Books a new repair ticket via Medusa v2 repair plugin or local workshop store
+   */
+  public async createRepairIntake(authToken: string | undefined, input: {
+    customer_id: string;
+    customer_name?: string;
+    customer_phone?: string;
+    customer_email?: string;
+    brand: string;
+    model_name: string;
+    device_type?: string;
+    serial_number?: string;
+    issue_description: string;
+    accessories?: string;
+    passcode?: string;
+    parts_estimate?: number;
+    labor_estimate?: number;
+    total_estimate?: number;
+    deposit_amount?: number;
+  }): Promise<RepairTicketRecord> {
+    const totalEst = input.total_estimate ??
+      ((input.parts_estimate || 0) + (input.labor_estimate || 0));
+    const deposit = input.deposit_amount || 0;
+    const balanceDue = Math.max(0, totalEst - deposit);
+
+    // 1. Try remote Medusa v2 repair plugin POST /admin/repairs
+    if (this.backendUrl && (authToken || this.publishableKey)) {
+      try {
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
+        if (this.publishableKey) {
+          headers["x-publishable-api-key"] = this.publishableKey;
+        }
+
+        const payload = {
+          device: {
+            brand: input.brand || "Apple",
+            model_name: input.model_name,
+            serial_number: input.serial_number || undefined,
+            device_type: input.device_type || "laptop",
+            customer_id: input.customer_id,
+          },
+          ticket: {
+            customer_id: input.customer_id,
+            issue_description: input.issue_description,
+            accessories: input.accessories || undefined,
+            parts_estimate: input.parts_estimate || 0,
+            labor_estimate: input.labor_estimate || 0,
+            total_estimate: totalEst,
+            metadata: {
+              deposit_amount: deposit,
+              passcode: input.passcode || undefined,
+              created_via: "web_pos_workshop",
+            },
+          },
+        };
+
+        const resp = await fetch(`${this.backendUrl}/admin/repairs`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(payload),
+        });
+
+        if (resp.ok) {
+          const data = await resp.json();
+          const t = data.repair_ticket || {};
+          const d = data.device || {};
+          const record: RepairTicketRecord = {
+            id: t.id || `rep_${Date.now()}`,
+            ticket_number: t.ticket_number ||
+              `REP-${
+                t.id?.slice(-5) || Math.floor(10000 + Math.random() * 90000)
+              }`,
+            customer_id: input.customer_id,
+            customer_name: input.customer_name || "Workshop Client",
+            customer_phone: input.customer_phone || "",
+            customer_email: input.customer_email || "",
+            device: {
+              id: d.id,
+              brand: d.brand || input.brand,
+              model_name: d.model_name || input.model_name,
+              serial_number: d.serial_number || input.serial_number,
+              device_type: d.device_type || input.device_type || "laptop",
+            },
+            device_name: `${input.brand} ${input.model_name}`.trim(),
+            serial_number: input.serial_number || "",
+            status: "received",
+            issue_description: input.issue_description,
+            accessories: input.accessories || "",
+            passcode: input.passcode || "",
+            parts_estimate: input.parts_estimate || 0,
+            labor_estimate: input.labor_estimate || 0,
+            total_estimate: totalEst,
+            deposit_amount: deposit,
+            balance_due: balanceDue,
+            created_at: t.created_at || new Date().toISOString(),
+          };
+          this.mockRepairs.unshift(record);
+          return record;
+        }
+      } catch {
+        // Fall back to local creation
+      }
+    }
+
+    // 2. Local fallback
+    const ticketNumber = `REP-${Math.floor(10000 + Math.random() * 90000)}`;
+    const newRecord: RepairTicketRecord = {
+      id: `rep_${Date.now()}`,
+      ticket_number: ticketNumber,
+      customer_id: input.customer_id,
+      customer_name: input.customer_name || "Workshop Client",
+      customer_phone: input.customer_phone || "",
+      customer_email: input.customer_email || "",
+      device: {
+        brand: input.brand || "Apple",
+        model_name: input.model_name,
+        serial_number: input.serial_number || "",
+        device_type: input.device_type || "laptop",
+      },
+      device_name: `${input.brand} ${input.model_name}`.trim(),
+      serial_number: input.serial_number || "",
+      status: "received",
+      issue_description: input.issue_description,
+      accessories: input.accessories || "",
+      passcode: input.passcode || "",
+      parts_estimate: input.parts_estimate || 0,
+      labor_estimate: input.labor_estimate || 0,
+      total_estimate: totalEst,
+      deposit_amount: deposit,
+      balance_due: balanceDue,
+      created_at: new Date().toISOString(),
+    };
+    this.mockRepairs.unshift(newRecord);
+    return newRecord;
   }
 }

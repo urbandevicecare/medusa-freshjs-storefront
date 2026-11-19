@@ -4,10 +4,13 @@ const service = new MedusaPOSService();
 
 export async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
+  const authHeader = req.headers.get("Authorization") || "";
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim() ||
+    url.searchParams.get("token") || undefined;
 
   if (req.method === "GET") {
     const q = url.searchParams.get("q") || url.searchParams.get("query") || "";
-    const customers = await service.searchCustomers(q);
+    const customers = await service.searchCustomers(q, token);
     return new Response(
       JSON.stringify({ customers, count: customers.length }),
       {

@@ -10,6 +10,9 @@ export interface State {
   order?: HttpTypes.StoreOrder;
   orders?: HttpTypes.StoreOrder[];
   cart?: HttpTypes.StoreCart;
+  hideLayout?: boolean;
+  title?: string;
+  description?: string;
 }
 
 export const define = createDefine<State>();

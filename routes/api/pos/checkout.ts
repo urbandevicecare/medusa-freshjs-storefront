@@ -13,7 +13,7 @@ export async function handler(req: Request): Promise<Response> {
     const body = await req.json();
     const order = await service.createPosOrder(body);
 
-    return new Response(JSON.stringify({ success: true, order }), {
+    return new Response(JSON.stringify({ success: true, ...order, order }), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (e: any) {

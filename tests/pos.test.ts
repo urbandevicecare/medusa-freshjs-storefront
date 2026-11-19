@@ -8,13 +8,24 @@ import { handler as posMiddlewareHandler } from "../routes/pos/_middleware.ts";
 import { handler as posScanHandler } from "../routes/api/pos/scan.ts";
 import { handler as posCheckoutHandler } from "../routes/api/pos/checkout.ts";
 import { handler as posCustomersHandler } from "../routes/api/pos/customers.ts";
+import { handler as posAuthHandler } from "../routes/api/pos/auth.ts";
+import { handler as posRepairsHandler } from "../routes/api/pos/repairs.ts";
 
 const service = new MedusaPOSService();
 
-Deno.test("POS Service - Admin & PIN Authentication", async () => {
-  const pinSession = await service.loginWithPin("1234");
-  assertExists(pinSession);
-  assertEquals(pinSession.admin.id, "usr_01KRV9NELLY");
+Deno.test("POS Service - Medusa Admin Authentication (Email & Password, No PIN)", async () => {
+  const session = await service.loginAdmin(
+    "nelly@urbandevicecare.co.uk",
+    "password",
+  );
+  assertExists(session);
+  assertExists(session.token);
+  assertEquals(session.admin.first_name, "Nelly");
+  assertEquals(session.admin.id, "usr_01KRV9NELLY");
+
+  const verified = service.verifyAdminToken(session.token);
+  assertExists(verified);
+  assertEquals(verified?.id, "usr_01KRV9NELLY");
 });
 
 Deno.test("POS Service - 1D Barcode & SKU Resolution", async () => {
@@ -61,7 +72,7 @@ Deno.test("POS Route - Middleware sets hideLayout", async () => {
     state: {},
     next: () => Promise.resolve(new Response("next-ok")),
   };
-  const resp = await posMiddlewareHandler(fakeCtx);
+  const resp = await (posMiddlewareHandler as any)(fakeCtx);
   assertEquals(resp.status, 200);
   assertEquals(fakeCtx.state.hideLayout, true);
 });
@@ -75,32 +86,47 @@ Deno.test("POS API - /api/pos/scan endpoint", async () => {
   assertEquals(data.part.sku, "NP04011448");
 });
 
-Deno.test("POS API - /api/pos/customers endpoint", async () => {
-  const req = new Request("http://localhost:8000/api/pos/customers?q=John");
+Deno.test("POS API - /api/pos/customers endpoint with Bearer token", async () => {
+  const req = new Request("http://localhost:8000/api/pos/customers?q=John", {
+    headers: { Authorization: "Bearer token_staff_usr_01KRV9NELLY" },
+  });
   const res = await posCustomersHandler(req);
   assertEquals(res.status, 200);
   const data = await res.json();
   assertExists(data.customers);
   assertEquals(Array.isArray(data.customers), true);
+  assertEquals(data.customers.length >= 1, true);
 });
 
-Deno.test("POS API - /api/pos/checkout endpoint", async () => {
+Deno.test("POS API - /api/pos/checkout endpoint with custom item and default customer", async () => {
   const body = {
     terminal_channel: "web_counter_01",
-    cashier: { id: "usr_01KRV9NELLY", name: "Nelly K." },
+    cashier: {
+      id: "usr_01KRV9NELLY",
+      name: "Nelly K.",
+      email: "nelly@urbandevicecare.co.uk",
+    },
+    customer: {
+      id: "usr_01KRV9NELLY",
+      first_name: "Nelly",
+      last_name: "K.",
+      email: "nelly@urbandevicecare.co.uk",
+      has_account: true,
+    },
     items: [
       {
-        variant_id: "var_kb_a2681",
-        title: "MacBook Air Keyboard",
-        price: 6500,
+        variant_id: "custom_screen_protector",
+        title: "Tempered Glass Protector",
+        price: 1500,
         quantity: 1,
-        total: 6500,
+        total: 1500,
+        is_custom: true,
       },
     ],
-    subtotal: 6500,
-    tax: 1040,
-    grand_total: 7540,
-    tender: { type: "cash", tendered: 8000, change: 460 },
+    subtotal: 1500,
+    tax: 240,
+    grand_total: 1740,
+    tender: { type: "cash", tendered: 2000, change: 260 },
   };
   const req = new Request("http://localhost:8000/api/pos/checkout", {
     method: "POST",
@@ -111,5 +137,54 @@ Deno.test("POS API - /api/pos/checkout endpoint", async () => {
   assertEquals(res.status, 200);
   const data = await res.json();
   assertEquals(data.success, true);
-  assertEquals(data.order.grand_total, 7540);
+  assertEquals(data.order.grand_total, 1740);
+  assertEquals(data.order.customer_id, "usr_01KRV9NELLY");
+});
+
+Deno.test("POS API - /api/pos/auth endpoint (Medusa Admin login)", async () => {
+  const postReq = new Request("http://localhost:8000/api/pos/auth", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email: "nelly@urbandevicecare.co.uk",
+      password: "password",
+    }),
+  });
+  const postRes = await posAuthHandler(postReq);
+  assertEquals(postRes.status, 200);
+  const postData = await postRes.json();
+  assertEquals(postData.admin.first_name, "Nelly");
+  assertExists(postData.token);
+});
+
+Deno.test("POS API - /api/pos/repairs endpoint (Workshop Intake & List)", async () => {
+  // 1. GET repairs
+  const getReq = new Request(
+    "http://localhost:8000/api/pos/repairs?status=all",
+  );
+  const getRes = await posRepairsHandler(getReq);
+  assertEquals(getRes.status, 200);
+  const getData = await getRes.json();
+  assertExists(getData.repairs);
+  assertEquals(getData.repairs.length >= 2, true);
+
+  // 2. POST repair intake
+  const postReq = new Request("http://localhost:8000/api/pos/repairs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      customer_id: "cus_01JOHN_DOE",
+      customer_name: "John Doe",
+      brand: "Apple",
+      model_name: "MacBook Air M2",
+      issue_description: "Spill damage diagnostics",
+      total_estimate: 8000,
+      deposit_amount: 2000,
+    }),
+  });
+  const postRes = await posRepairsHandler(postReq);
+  assertEquals(postRes.status, 201);
+  const postData = await postRes.json();
+  assertEquals(postData.success, true);
+  assertEquals(postData.repair.balance_due, 6000);
 });

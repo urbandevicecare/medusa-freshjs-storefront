@@ -189,6 +189,74 @@ export class ThermalPrinterService {
     return new Uint8Array(bytes);
   }
 
+  /**
+   * Generates a 58mm HTML preview receipt
+   */
+  static generateHtml58mm(data: ThermalReceiptData): string {
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Receipt ${data.orderNumber}</title>
+  <style>
+    body { font-family: monospace; width: 280px; margin: 20px auto; padding: 10px; border: 1px dashed #ccc; font-size: 12px; }
+    .center { text-align: center; }
+    .bold { font-weight: bold; }
+    .flex { display: flex; justify-content: space-between; }
+    hr { border: none; border-top: 1px dashed #000; margin: 6px 0; }
+  </style>
+</head>
+<body onload="window.print()">
+  <div class="center bold" style="font-size: 16px;">${data.storeName.toUpperCase()}</div>
+  ${data.storeAddress ? `<div class="center">${data.storeAddress}</div>` : ""}
+  ${data.storePhone ? `<div class="center">Tel: ${data.storePhone}</div>` : ""}
+  <div class="center" style="font-size: 10px; color: #666;">58mm Thermal Receipt</div>
+  <hr>
+  <div class="center bold">ORDER: ${data.orderNumber}</div>
+  <hr>
+  <div class="flex bold"><span>ITEM</span><span>TOTAL</span></div>
+  <hr>
+  ${
+      data.items
+        .map((i) =>
+          `<div class="flex"><span>${i.quantity}x ${i.title}</span><span>KES ${
+            i.total.toFixed(2)
+          }</span></div>`
+        )
+        .join("")
+    }
+  <hr>
+  <div class="flex"><span>SUBTOTAL:</span><span>KES ${
+      data.subtotal.toFixed(2)
+    }</span></div>
+  <div class="flex"><span>VAT (16%):</span><span>KES ${
+      data.tax.toFixed(2)
+    }</span></div>
+  <div class="flex bold" style="font-size: 14px;"><span>TOTAL:</span><span>KES ${
+      data.grandTotal.toFixed(2)
+    }</span></div>
+  <hr>
+  <div class="flex"><span>Tender:</span><span>${data.tenderType.toUpperCase()}</span></div>
+  <div class="flex"><span>Tendered:</span><span>KES ${
+      data.tendered.toFixed(2)
+    }</span></div>
+  <div class="flex"><span>Change:</span><span>KES ${
+      data.change.toFixed(2)
+    }</span></div>
+  <hr>
+  <div class="flex"><span>Cashier:</span><span>${data.cashierName}</span></div>
+  <div class="flex"><span>Terminal:</span><span>${data.terminalChannel}</span></div>
+  ${
+      data.customerName
+        ? `<div class="flex"><span>Client:</span><span>${data.customerName}</span></div>`
+        : ""
+    }
+  <hr>
+  <div class="center">Thank you for visiting!</div>
+</body>
+</html>`;
+  }
+
   private static appendString(bytes: number[], str: string) {
     const encoder = new TextEncoder();
     const encoded = encoder.encode(str);
