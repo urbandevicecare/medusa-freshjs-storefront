@@ -2161,122 +2161,213 @@ export default function PosTerminal() {
             </div>
           </div>
 
-          {/* Repairs Grid */}
-          <div class="flex-1 overflow-y-auto">
-            {repairsLoading
-              ? (
-                <div class="text-center py-20 text-xs text-zinc-400">
-                  Loading repair tickets from Medusa workshop...
-                </div>
-              )
-              : filteredRepairs.length === 0
-              ? (
-                <div class="text-center py-20 bg-[#1C1C1E] border border-[#2C2C2E] rounded-xl">
-                  <Wrench class="w-8 h-8 text-zinc-600 mx-auto mb-2" />
-                  <p class="text-sm font-semibold text-zinc-300">
-                    No repair tickets found
-                  </p>
-                  <p class="text-xs text-zinc-500 mt-1">
-                    Tap "+ Book Repair Intake" to register a new customer device
-                  </p>
-                </div>
-              )
-              : (
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {filteredRepairs.map((r) => {
-                    const bal = r.balance_due ??
-                      Math.max(
-                        0,
-                        (r.total_estimate || 0) - (r.deposit_amount || 0),
-                      );
-                    const payBadge = getPaymentBadge(r);
-                    return (
-                      <div
-                        key={r.id}
-                        onClick={() => setSelectedTicket(r)}
-                        class="bg-[#1C1C1E] hover:bg-[#222224] border border-[#2C2C2E] hover:border-zinc-700 p-4 rounded-xl cursor-pointer transition flex flex-col justify-between group shadow-sm hover:shadow-md"
-                      >
-                        <div>
-                          <div class="flex items-center justify-between mb-2">
-                            <span class="text-xs font-mono font-bold text-blue-400 group-hover:underline">
-                              #{r.ticket_number}
-                            </span>
-                            <div class="flex items-center space-x-1.5">
-                              <span
-                                class={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${payBadge.badgeClass}`}
-                              >
-                                {payBadge.label}
-                              </span>
-                              <span
-                                class={`text-[10px] font-semibold capitalize px-2 py-0.5 rounded-full border ${
-                                  getStatusBadge(
-                                    r.status,
+          {/* Repairs Table (Rows View) */}
+          <div class="flex-1 overflow-hidden flex flex-col bg-[#1C1C1E] border border-[#2C2C2E] rounded-xl shadow-sm">
+            <div
+              tabIndex={0}
+              role="region"
+              aria-label="Repair tickets directory"
+              class="flex-1 overflow-x-auto overflow-y-auto"
+            >
+              {repairsLoading
+                ? (
+                  <div class="text-center py-20 text-xs text-zinc-400">
+                    <div class="inline-block animate-spin w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full mb-2">
+                    </div>
+                    <p>Loading repair tickets from Medusa workshop...</p>
+                  </div>
+                )
+                : filteredRepairs.length === 0
+                ? (
+                  <div class="text-center py-20">
+                    <Wrench class="w-8 h-8 text-zinc-600 mx-auto mb-2" />
+                    <p class="text-sm font-semibold text-zinc-300">
+                      No repair tickets found
+                    </p>
+                    <p class="text-xs text-zinc-500 mt-1">
+                      Tap "+ Book Repair Intake" to register a new customer
+                      device
+                    </p>
+                  </div>
+                )
+                : (
+                  <table class="w-full text-left border-collapse min-w-[760px]">
+                    <thead class="sticky top-0 bg-[#161618] z-10 text-[11px] uppercase tracking-wider font-semibold text-zinc-400 border-b border-[#2C2C2E]">
+                      <tr>
+                        <th scope="col" class="py-3 px-4">Ticket</th>
+                        <th scope="col" class="py-3 px-4">
+                          Device &amp; Issue
+                        </th>
+                        <th scope="col" class="py-3 px-4">Client</th>
+                        <th scope="col" class="py-3 px-4">Tech / Serial</th>
+                        <th scope="col" class="py-3 px-4">Status</th>
+                        <th scope="col" class="py-3 px-4">Payment</th>
+                        <th scope="col" class="py-3 px-4 text-right">
+                          Balance Due
+                        </th>
+                        <th scope="col" class="py-3 px-4 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-[#2C2C2E]/60 text-xs">
+                      {filteredRepairs.map((r) => {
+                        const bal = r.balance_due ??
+                          Math.max(
+                            0,
+                            (r.total_estimate || 0) - (r.deposit_amount || 0),
+                          );
+                        const payBadge = getPaymentBadge(r);
+                        return (
+                          <tr
+                            key={r.id}
+                            onClick={() => setSelectedTicket(r)}
+                            class="hover:bg-[#252528] transition-colors cursor-pointer group"
+                          >
+                            {/* Ticket # & Date */}
+                            <td class="py-3 px-4 whitespace-nowrap">
+                              <div class="font-mono font-bold text-blue-400 group-hover:underline flex items-center space-x-1">
+                                <span>#{r.ticket_number}</span>
+                              </div>
+                              <span class="text-[10px] text-zinc-500 font-mono block mt-0.5">
+                                {r.created_at
+                                  ? new Date(r.created_at).toLocaleDateString(
+                                    undefined,
+                                    {
+                                      month: "short",
+                                      day: "numeric",
+                                    },
                                   )
+                                  : "—"}
+                              </span>
+                            </td>
+
+                            {/* Device & Issue */}
+                            <td class="py-3 px-4 max-w-xs md:max-w-sm">
+                              <div class="font-bold text-zinc-100 truncate">
+                                {r.device_name || r.device?.model_name ||
+                                  "Device"}
+                              </div>
+                              <div
+                                class="text-[11px] text-zinc-400 truncate mt-0.5"
+                                title={r.issue_description}
+                              >
+                                {r.issue_description ||
+                                  "No issue details recorded"}
+                              </div>
+                            </td>
+
+                            {/* Client */}
+                            <td class="py-3 px-4 whitespace-nowrap">
+                              <div class="text-zinc-200 font-medium truncate max-w-[140px]">
+                                {r.customer_name || "Staff Client"}
+                              </div>
+                              {r.customer_phone && (
+                                <div class="text-[10px] text-zinc-500 font-mono mt-0.5">
+                                  {r.customer_phone}
+                                </div>
+                              )}
+                            </td>
+
+                            {/* Tech / Serial */}
+                            <td class="py-3 px-4 whitespace-nowrap text-zinc-400 text-[11px] font-mono">
+                              {r.technician_name
+                                ? (
+                                  <div class="text-zinc-300 truncate max-w-[120px]">
+                                    <span class="text-zinc-500">Tech:</span>
+                                    {" "}
+                                    {r.technician_name}
+                                  </div>
+                                )
+                                : null}
+                              {r.serial_number
+                                ? (
+                                  <div
+                                    class="text-[10px] text-zinc-500 truncate max-w-[130px]"
+                                    title={r.serial_number}
+                                  >
+                                    S/N: {r.serial_number}
+                                  </div>
+                                )
+                                : null}
+                              {!r.technician_name && !r.serial_number && (
+                                <span class="text-zinc-600">—</span>
+                              )}
+                            </td>
+
+                            {/* Repair Status Badge */}
+                            <td class="py-3 px-4 whitespace-nowrap">
+                              <span
+                                class={`text-[10px] font-semibold capitalize px-2 py-0.5 rounded-full border inline-block ${
+                                  getStatusBadge(r.status)
                                 }`}
                               >
                                 {r.status.replace("_", " ")}
                               </span>
-                            </div>
-                          </div>
+                            </td>
 
-                          <h3 class="text-xs font-bold text-zinc-100 line-clamp-1 mb-1">
-                            {r.device_name || r.device?.model_name || "Device"}
-                          </h3>
-                          <p class="text-[11px] text-zinc-400 line-clamp-2 mb-3">
-                            {r.issue_description}
-                          </p>
-
-                          <div class="space-y-1 text-[10px] text-zinc-400 font-mono mb-3 pt-2 border-t border-[#2C2C2E]">
-                            <div class="flex justify-between">
-                              <span class="text-zinc-500">Client:</span>
-                              <span class="text-zinc-300 truncate max-w-[150px]">
-                                {r.customer_name || "Staff Client"}
+                            {/* Payment Status Badge */}
+                            <td class="py-3 px-4 whitespace-nowrap">
+                              <span
+                                class={`text-[10px] font-semibold px-2 py-0.5 rounded-full border inline-block ${payBadge.badgeClass}`}
+                              >
+                                {payBadge.label}
                               </span>
-                            </div>
-                            {r.serial_number && (
-                              <div class="flex justify-between">
-                                <span class="text-zinc-500">Serial:</span>
-                                <span class="text-zinc-300">
-                                  {r.serial_number}
-                                </span>
-                              </div>
-                            )}
-                            {r.technician_name && (
-                              <div class="flex justify-between">
-                                <span class="text-zinc-500">Tech:</span>
-                                <span class="text-zinc-300">
-                                  {r.technician_name}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                            </td>
 
-                        <div class="flex items-center justify-between pt-2 border-t border-[#2C2C2E]">
-                          <div>
-                            <span class="text-[10px] text-zinc-500 block">
-                              Balance Due:
-                            </span>
-                            <span class="text-xs font-bold text-emerald-400 font-mono">
-                              KES {bal.toFixed(2)}
-                            </span>
-                          </div>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              tenderRepairBalance(r);
-                            }}
-                            class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold transition active:scale-95 shadow flex items-center space-x-1"
-                          >
-                            <ShoppingCart class="w-3 h-3" />
-                            <span>Tender</span>
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                            {/* Balance Due */}
+                            <td class="py-3 px-4 whitespace-nowrap text-right font-mono">
+                              <div class="font-bold text-emerald-400">
+                                KES {bal.toFixed(2)}
+                              </div>
+                              {r.total_estimate && r.total_estimate > 0 && (
+                                <div class="text-[10px] text-zinc-500">
+                                  Total: KES {r.total_estimate.toFixed(2)}
+                                </div>
+                              )}
+                            </td>
+
+                            {/* Actions */}
+                            <td class="py-3 px-4 whitespace-nowrap text-right">
+                              <div class="flex items-center justify-end space-x-1.5">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    tenderRepairBalance(r);
+                                  }}
+                                  class="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold transition active:scale-95 shadow inline-flex items-center space-x-1"
+                                  title="Tender repair balance into cart"
+                                >
+                                  <ShoppingCart class="w-3 h-3" />
+                                  <span>Tender</span>
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedTicket(r);
+                                  }}
+                                  class="p-1 text-zinc-400 hover:text-white rounded hover:bg-[#2C2C2E] transition"
+                                  title="View ticket details"
+                                >
+                                  <ExternalLink class="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+            </div>
+            {/* Table Footer with Count */}
+            <div class="px-4 py-2 border-t border-[#2C2C2E] bg-[#161618] text-[11px] text-zinc-400 font-mono flex items-center justify-between">
+              <span>
+                Showing {filteredRepairs.length} of {repairs.length}{" "}
+                repair tickets
+              </span>
+              <span class="text-zinc-600">
+                Click any row to view &amp; update ticket details
+              </span>
+            </div>
           </div>
         </div>
       )}
