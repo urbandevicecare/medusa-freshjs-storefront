@@ -1257,8 +1257,12 @@ export default function PosTerminal() {
 
   // Open STK modal for general cart checkout
   const openCartStkModal = () => {
-    if (cart.length === 0) {
-      setStatusNotice("Cart is empty.");
+    if (cart.length === 0 || grandTotal <= 0) {
+      setStatusNotice(
+        cart.length === 0
+          ? "Cart is empty."
+          : "Cart balance is KES 0.00. No payment required.",
+      );
       return;
     }
     setStkPhone(selectedCustomer?.phone || "");
@@ -1277,17 +1281,27 @@ export default function PosTerminal() {
         (ticket.total_estimate || 0) -
           (ticket.deposit_amount || ticket.amount_paid || 0),
       );
+    if (due <= 0) {
+      setStatusNotice(`Repair #${ticket.ticket_number} has zero balance due.`);
+      return;
+    }
     setStkPhone(ticket.customer_phone || selectedCustomer?.phone || "");
-    setStkAmount(due > 0 ? due : (ticket.total_estimate || 1000));
+    setStkAmount(due);
     setStkTicketId(ticket.id);
     setStkStep("input");
-    setStkNotice(`Repair #${ticket.ticket_number} - Balance Due`);
+    setStkNotice(
+      `Repair #${ticket.ticket_number} - Balance Due: KES ${due.toFixed(2)}`,
+    );
     setShowStkModal(true);
   };
 
   // Send M-Pesa STK Push
   const handleSendStkPush = async (e?: Event) => {
     if (e) e.preventDefault();
+    if (stkAmount <= 0) {
+      setStkNotice("Payment amount must be greater than KES 0.00.");
+      return;
+    }
     const cleanPhone = stkPhone.trim();
     if (!cleanPhone || cleanPhone.length < 9) {
       setStkNotice(
@@ -2154,12 +2168,12 @@ export default function PosTerminal() {
                               {typeof item.inventory_quantity === "number" && (
                                 <span
                                   class={item.inventory_quantity > 0
-                                    ? "text-emerald-400"
-                                    : "text-amber-400"}
+                                    ? "text-emerald-400 font-semibold"
+                                    : "text-rose-400 font-semibold"}
                                 >
                                   • {item.inventory_quantity > 0
                                     ? `${item.inventory_quantity} in stock`
-                                    : "Out of stock"}
+                                    : "0 in stock (Out of stock)"}
                                 </span>
                               )}
                             </div>
@@ -2274,10 +2288,12 @@ export default function PosTerminal() {
                             {typeof part.inventory_quantity === "number" && (
                               <span
                                 class={part.inventory_quantity > 0
-                                  ? " text-emerald-400 ml-1.5"
-                                  : " text-amber-400 ml-1.5"}
+                                  ? " text-emerald-400 font-semibold ml-1.5"
+                                  : " text-rose-400 font-semibold ml-1.5"}
                               >
-                                ({part.inventory_quantity} in stock)
+                                • {part.inventory_quantity > 0
+                                  ? `${part.inventory_quantity} in stock`
+                                  : "0 in stock (Out of stock)"}
                               </span>
                             )}
                           </p>
@@ -2360,6 +2376,25 @@ export default function PosTerminal() {
                               <p class="text-[10px] text-zinc-400">
                                 KES {item.part.price.toFixed(2)} each
                               </p>
+                              {typeof item.part.inventory_quantity ===
+                                  "number" && (
+                                <span
+                                  class={`text-[10px] ${
+                                    item.part.inventory_quantity >=
+                                        item.quantity
+                                      ? "text-emerald-400/90 font-medium"
+                                      : "text-rose-400 font-bold"
+                                  }`}
+                                >
+                                  • {item.part.inventory_quantity} in stock
+                                  {item.quantity >
+                                      item.part.inventory_quantity && (
+                                    <span class="ml-1 text-rose-400 font-bold underline">
+                                      (Exceeds stock!)
+                                    </span>
+                                  )}
+                                </span>
+                              )}
                               {item.part.appliedPriceList &&
                                 item.originalPrice &&
                                 item.part.price !== item.originalPrice && (
@@ -2497,16 +2532,22 @@ export default function PosTerminal() {
                 <div class="grid grid-cols-2 gap-2 mb-2">
                   <button
                     onClick={() => completeCheckout({ type: "cash" })}
-                    disabled={cart.length === 0}
-                    class="inline-flex items-center justify-center space-x-1.5 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition active:scale-95 shadow"
+                    disabled={cart.length === 0 || grandTotal <= 0}
+                    class="inline-flex items-center justify-center space-x-1.5 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-xs font-bold transition active:scale-95 shadow"
+                    title={grandTotal <= 0
+                      ? "Balance is KES 0.00"
+                      : "Charge Cash"}
                   >
                     <CheckCircle2 class="w-4 h-4" />
                     <span>Charge Cash</span>
                   </button>
                   <button
                     onClick={openCartStkModal}
-                    disabled={cart.length === 0}
-                    class="inline-flex items-center justify-center space-x-1.5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition active:scale-95 shadow"
+                    disabled={cart.length === 0 || grandTotal <= 0}
+                    class="inline-flex items-center justify-center space-x-1.5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-xs font-bold transition active:scale-95 shadow"
+                    title={grandTotal <= 0
+                      ? "Balance is KES 0.00"
+                      : "Tender via M-Pesa STK Push"}
                   >
                     <Smartphone class="w-4 h-4" />
                     <span>M-Pesa STK Push</span>
@@ -3022,24 +3063,38 @@ export default function PosTerminal() {
 
             <div class="pt-4 mt-4 border-t border-[#2C2C2E] flex justify-between items-center">
               <div>
-                {selectedTicket.status !== "completed" && (
-                  <button
-                    type="button"
-                    onClick={() => openRepairStkModal(selectedTicket)}
-                    class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition active:scale-95 shadow flex items-center space-x-1.5"
-                  >
-                    <Smartphone class="w-3.5 h-3.5" />
-                    <span>
-                      Push M-Pesa STK (KES {(selectedTicket.balance_due ??
-                        Math.max(
-                          0,
-                          (selectedTicket.total_estimate || 0) -
-                            (selectedTicket.deposit_amount ||
-                              selectedTicket.amount_paid || 0),
-                        )).toFixed(2)})
-                    </span>
-                  </button>
-                )}
+                {selectedTicket.status !== "completed" && (() => {
+                  const balanceDue = selectedTicket.balance_due ??
+                    Math.max(
+                      0,
+                      (selectedTicket.total_estimate || 0) -
+                        (selectedTicket.deposit_amount ||
+                          selectedTicket.amount_paid || 0),
+                    );
+                  const isZeroBalance = balanceDue <= 0;
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => openRepairStkModal(selectedTicket)}
+                      disabled={isZeroBalance}
+                      class={`px-4 py-2 text-white text-xs font-bold rounded-lg transition shadow flex items-center space-x-1.5 ${
+                        isZeroBalance
+                          ? "bg-zinc-700/60 text-zinc-400 opacity-50 cursor-not-allowed pointer-events-none"
+                          : "bg-emerald-600 hover:bg-emerald-500 active:scale-95 cursor-pointer"
+                      }`}
+                      title={isZeroBalance
+                        ? "Balance is KES 0.00 (No payment due)"
+                        : "Push M-Pesa STK prompt"}
+                    >
+                      <Smartphone class="w-3.5 h-3.5" />
+                      <span>
+                        {isZeroBalance
+                          ? "Push M-Pesa STK (Balance: KES 0.00 - Paid)"
+                          : `Push M-Pesa STK (KES ${balanceDue.toFixed(2)})`}
+                      </span>
+                    </button>
+                  );
+                })()}
               </div>
               <button
                 type="button"
@@ -3750,7 +3805,11 @@ export default function PosTerminal() {
                   </button>
                   <button
                     type="submit"
-                    class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition active:scale-95 shadow flex items-center justify-center space-x-1.5"
+                    disabled={stkAmount <= 0}
+                    class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg transition active:scale-95 shadow flex items-center justify-center space-x-1.5"
+                    title={stkAmount <= 0
+                      ? "Payment amount must be greater than KES 0.00"
+                      : "Send M-Pesa Prompt"}
                   >
                     <Smartphone class="w-4 h-4" />
                     <span>Send M-Pesa Prompt</span>

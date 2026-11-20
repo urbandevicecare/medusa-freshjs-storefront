@@ -49,6 +49,49 @@ export interface CartItem {
   discount_description?: string;
 }
 
+/**
+ * Resolves the genuine physical or calculated in-stock inventory quantity
+ * across Medusa v2 product variants, inventory items, and location levels.
+ * Returns 0 if item is unstocked or out-of-stock (never returns fake fallback).
+ */
+export function resolveActualStock(item: any): number {
+  if (!item) return 0;
+  if (typeof item.inventory_quantity === "number") {
+    return Math.max(0, item.inventory_quantity);
+  }
+  if (typeof item.stock_quantity === "number") {
+    return Math.max(0, item.stock_quantity);
+  }
+  if (Array.isArray(item.inventory_items) && item.inventory_items.length > 0) {
+    let totalStock = 0;
+    for (const itemLink of item.inventory_items) {
+      const levels = itemLink.inventory?.location_levels ||
+        itemLink.location_levels || [];
+      if (Array.isArray(levels) && levels.length > 0) {
+        for (const lvl of levels) {
+          totalStock += typeof lvl.stocked_quantity === "number"
+            ? lvl.stocked_quantity
+            : (typeof lvl.available_quantity === "number"
+              ? lvl.available_quantity
+              : 0);
+        }
+      } else if (typeof itemLink.stocked_quantity === "number") {
+        totalStock += itemLink.stocked_quantity;
+      }
+    }
+    return Math.max(0, totalStock);
+  }
+  if (Array.isArray(item.location_levels) && item.location_levels.length > 0) {
+    const total = item.location_levels.reduce(
+      (sum: number, lvl: any) =>
+        sum + (lvl.stocked_quantity ?? lvl.available_quantity ?? 0),
+      0,
+    );
+    return Math.max(0, total);
+  }
+  return 0;
+}
+
 export type RepairStatus =
   | "pending_dropoff"
   | "received"
@@ -484,7 +527,7 @@ export class MedusaPOSService {
                     barcode: v.barcode || undefined,
                     price: v.calculated_price?.calculated_amount ??
                       (v.prices?.[0]?.amount || 0),
-                    inventory_quantity: v.inventory_quantity ?? 10,
+                    inventory_quantity: resolveActualStock(v),
                   },
                 };
               }
@@ -575,7 +618,7 @@ export class MedusaPOSService {
                   sku: item.sku || undefined,
                   barcode: item.barcode || item.ean || item.upc || undefined,
                   price: typeof item.price === "number" ? item.price : 0,
-                  inventory_quantity: item.inventory_quantity ?? 10,
+                  inventory_quantity: resolveActualStock(item),
                 });
               }
             }
@@ -593,7 +636,7 @@ export class MedusaPOSService {
           limit: 100,
           offset: 0,
           fields:
-            "*variants,*variants.options,*options,*options.values,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder",
+            "*variants,*variants.options,*options,*options.values,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder,*variants.inventory_items.*,*variants.inventory_items.inventory.location_levels.*",
         };
         if (q) queryParams.q = q;
 
@@ -617,7 +660,7 @@ export class MedusaPOSService {
                   sku: v.sku || undefined,
                   barcode: v.barcode || v.ean || v.upc || undefined,
                   price,
-                  inventory_quantity: v.inventory_quantity ?? 10,
+                  inventory_quantity: resolveActualStock(v),
                 });
               }
             }
