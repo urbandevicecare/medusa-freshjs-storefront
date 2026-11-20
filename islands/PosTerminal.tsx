@@ -1101,44 +1101,6 @@ export default function PosTerminal() {
     }
   };
 
-  // Tender Repair Balance: Transports repair ticket balance directly into the Counter Cart!
-  const tenderRepairBalance = (ticket: RepairTicketRecord) => {
-    const balDue = ticket.balance_due ??
-      Math.max(0, (ticket.total_estimate || 0) - (ticket.deposit_amount || 0));
-
-    const repairItem: ProductPart = {
-      id: `rep_${ticket.ticket_number}`,
-      title: `Repair Balance: #${ticket.ticket_number} - ${
-        ticket.device_name || ticket.device?.model_name || "Device"
-      }`,
-      price: balDue,
-      sku: ticket.ticket_number,
-      isCustom: true,
-    };
-
-    // Attach customer if ticket has customer info
-    if (ticket.customer_id) {
-      setSelectedCustomer({
-        id: ticket.customer_id,
-        first_name: ticket.customer_name?.split(" ")[0] || "Client",
-        last_name: ticket.customer_name?.split(" ").slice(1).join(" ") || "",
-        email: ticket.customer_email ||
-          `client_${ticket.ticket_number.toLowerCase()}@pos.urbandevicecare.co.uk`,
-        phone: ticket.customer_phone || "",
-        has_account: true,
-      });
-    }
-
-    addToCart(repairItem, 1);
-    setSelectedTicket(null);
-    setActiveTab("counter");
-    setStatusNotice(
-      `✔ Loaded #${ticket.ticket_number} balance (KES ${
-        balDue.toFixed(2)
-      }) into cart. Ready for tender.`,
-    );
-  };
-
   const handleUpdateTicketStatus = async (newStatus: string) => {
     if (!selectedTicket) return;
     setUpdatingTicketStatus(true);
@@ -2327,29 +2289,17 @@ export default function PosTerminal() {
 
                             {/* Actions */}
                             <td class="py-3 px-4 whitespace-nowrap text-right">
-                              <div class="flex items-center justify-end space-x-1.5">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    tenderRepairBalance(r);
-                                  }}
-                                  class="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold transition active:scale-95 shadow inline-flex items-center space-x-1"
-                                  title="Tender repair balance into cart"
-                                >
-                                  <ShoppingCart class="w-3 h-3" />
-                                  <span>Tender</span>
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedTicket(r);
-                                  }}
-                                  class="p-1 text-zinc-400 hover:text-white rounded hover:bg-[#2C2C2E] transition"
-                                  title="View ticket details"
-                                >
-                                  <ExternalLink class="w-3.5 h-3.5" />
-                                </button>
-                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedTicket(r);
+                                }}
+                                class="px-2.5 py-1 bg-[#2C2C2E] hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-lg text-xs font-medium transition inline-flex items-center space-x-1"
+                                title="View ticket details"
+                              >
+                                <ExternalLink class="w-3.5 h-3.5" />
+                                <span>View</span>
+                              </button>
                             </td>
                           </tr>
                         );
@@ -2571,21 +2521,13 @@ export default function PosTerminal() {
               </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-2 pt-4 mt-4 border-t border-[#2C2C2E]">
+            <div class="pt-4 mt-4 border-t border-[#2C2C2E] flex justify-end">
               <button
                 type="button"
                 onClick={() => setSelectedTicket(null)}
-                class="py-2.5 bg-[#2C2C2E] hover:bg-zinc-700 text-xs font-semibold rounded-lg text-zinc-300 transition"
+                class="px-5 py-2.5 bg-[#2C2C2E] hover:bg-zinc-700 text-xs font-semibold rounded-lg text-zinc-300 transition"
               >
                 Close
-              </button>
-              <button
-                type="button"
-                onClick={() => tenderRepairBalance(selectedTicket)}
-                class="py-2.5 bg-blue-600 hover:bg-blue-500 text-xs font-bold rounded-lg text-white transition flex items-center justify-center space-x-1.5 shadow"
-              >
-                <ShoppingCart class="w-3.5 h-3.5" />
-                <span>Add to Cart / Tender</span>
               </button>
             </div>
           </div>
