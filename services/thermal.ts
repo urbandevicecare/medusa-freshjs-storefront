@@ -102,11 +102,18 @@ export class ThermalPrinterService {
         32,
       ) + "\n",
     );
-    this.appendString(
-      bytes,
-      this.formatTwoColumns("VAT (16%):", `KES ${data.tax.toFixed(2)}`, 32) +
-        "\n",
-    );
+    if (data.tax > 0) {
+      this.appendString(
+        bytes,
+        this.formatTwoColumns("VAT (16%):", `KES ${data.tax.toFixed(2)}`, 32) +
+          "\n",
+      );
+    } else {
+      this.appendString(
+        bytes,
+        this.formatTwoColumns("VAT (0%):", "KES 0.00", 32) + "\n",
+      );
+    }
 
     // Bold Grand Total
     bytes.push(0x1b, 0x45, 0x01);
@@ -229,9 +236,13 @@ export class ThermalPrinterService {
   <div class="flex"><span>SUBTOTAL:</span><span>KES ${
       data.subtotal.toFixed(2)
     }</span></div>
-  <div class="flex"><span>VAT (16%):</span><span>KES ${
-      data.tax.toFixed(2)
-    }</span></div>
+  ${
+      data.tax > 0
+        ? `<div class="flex"><span>VAT (16%):</span><span>KES ${
+          data.tax.toFixed(2)
+        }</span></div>`
+        : `<div class="flex"><span>VAT (0% / Exempt):</span><span>KES 0.00</span></div>`
+    }
   <div class="flex bold" style="font-size: 14px;"><span>TOTAL:</span><span>KES ${
       data.grandTotal.toFixed(2)
     }</span></div>

@@ -85,6 +85,7 @@ export interface RepairTicketRecord {
   ticket_number: string;
   customer_id?: string;
   customer_name?: string;
+  company_name?: string;
   customer_phone?: string;
   customer_email?: string;
   technician_id?: string;
@@ -949,10 +950,14 @@ export class MedusaPOSService {
               id: t.id,
               ticket_number: t.ticket_number || `REP-${t.id?.slice(-5)}`,
               customer_id: t.customer_id,
-              customer_name: t.customer?.first_name
+              customer_name: t.customer?.company_name
+                ? t.customer.company_name
+                : t.customer?.first_name
                 ? `${t.customer.first_name} ${t.customer.last_name || ""}`
                   .trim()
-                : (t.customer_name || "Workshop Client"),
+                : (t.company_name || t.customer_name || "Customer"),
+              company_name: t.customer?.company_name || t.company_name ||
+                undefined,
               customer_phone: t.customer?.phone || t.customer_phone || "",
               customer_email: t.customer?.email || t.customer_email || "",
               technician_id: t.technician_id || undefined,
@@ -1035,6 +1040,7 @@ export class MedusaPOSService {
   public async createRepairIntake(authToken: string | undefined, input: {
     customer_id: string;
     customer_name?: string;
+    company_name?: string;
     customer_phone?: string;
     customer_email?: string;
     brand: string;
@@ -1118,7 +1124,9 @@ export class MedusaPOSService {
                 t.id?.slice(-5) || Math.floor(10000 + Math.random() * 90000)
               }`,
             customer_id: input.customer_id,
-            customer_name: input.customer_name || "Workshop Client",
+            customer_name: input.company_name || input.customer_name ||
+              "Customer",
+            company_name: input.company_name || undefined,
             customer_phone: input.customer_phone || "",
             customer_email: input.customer_email || "",
             technician_name: input.technician_name,
@@ -1168,7 +1176,8 @@ export class MedusaPOSService {
       id: `rep_${Date.now()}`,
       ticket_number: ticketNumber,
       customer_id: input.customer_id,
-      customer_name: input.customer_name || "Workshop Client",
+      customer_name: input.company_name || input.customer_name || "Customer",
+      company_name: input.company_name || undefined,
       customer_phone: input.customer_phone || "",
       customer_email: input.customer_email || "",
       technician_name: input.technician_name,

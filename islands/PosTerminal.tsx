@@ -69,6 +69,7 @@ export interface RepairTicketRecord {
   ticket_number: string;
   customer_id?: string;
   customer_name?: string;
+  company_name?: string;
   customer_phone?: string;
   customer_email?: string;
   technician_id?: string;
@@ -162,6 +163,7 @@ export default function PosTerminal() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [scanInput, setScanInput] = useState("");
   const [tenderInput, setTenderInput] = useState("");
+  const [applyVat, setApplyVat] = useState(false);
   const [statusNotice, setStatusNotice] = useState(
     "Ready for barcode scan or SKU lookup.",
   );
@@ -669,7 +671,7 @@ export default function PosTerminal() {
     (acc, item) => acc + item.part.price * item.quantity,
     0,
   );
-  const tax = Math.round(subtotal * 0.16 * 100) / 100;
+  const tax = applyVat ? Math.round(subtotal * 0.16 * 100) / 100 : 0;
   const grandTotal = subtotal + tax;
 
   const tenderedAmount = parseFloat(tenderInput) || 0;
@@ -1016,9 +1018,10 @@ export default function PosTerminal() {
 
       const payload = {
         customer_id: effectiveCustomer.id,
-        customer_name: `${effectiveCustomer.first_name} ${
-          effectiveCustomer.last_name || ""
-        }`.trim(),
+        customer_name:
+          `${effectiveCustomer.first_name} ${effectiveCustomer.last_name || ""}`
+            .trim() || effectiveCustomer.company_name || "Customer",
+        company_name: effectiveCustomer.company_name || undefined,
         customer_phone: effectiveCustomer.phone,
         customer_email: effectiveCustomer.email,
         brand: intakeForm.brand,
@@ -1966,9 +1969,32 @@ export default function PosTerminal() {
                     <span>Subtotal:</span>
                     <span class="font-mono">KES {subtotal.toFixed(2)}</span>
                   </div>
-                  <div class="flex justify-between text-xs text-zinc-400">
-                    <span>VAT (16%):</span>
-                    <span class="font-mono">KES {tax.toFixed(2)}</span>
+                  <div class="flex items-center justify-between text-xs py-0.5">
+                    <label class="inline-flex items-center space-x-2 cursor-pointer select-none group">
+                      <input
+                        type="checkbox"
+                        checked={applyVat}
+                        onChange={(e) =>
+                          setApplyVat((e.target as HTMLInputElement).checked)}
+                        class="w-3.5 h-3.5 rounded bg-[#2C2C2E] border-[#3A3A3C] text-blue-600 focus:ring-0 focus:outline-none cursor-pointer"
+                      />
+                      <span
+                        class={`transition-colors ${
+                          applyVat
+                            ? "text-zinc-200 font-medium"
+                            : "text-zinc-400 group-hover:text-zinc-300"
+                        }`}
+                      >
+                        VAT (16%):
+                      </span>
+                    </label>
+                    <span
+                      class={`font-mono text-xs ${
+                        applyVat ? "text-zinc-200" : "text-zinc-500"
+                      }`}
+                    >
+                      {applyVat ? `KES ${tax.toFixed(2)}` : "KES 0.00 (Exempt)"}
+                    </span>
                   </div>
                   <div class="flex justify-between text-sm font-bold text-white pt-1 border-t border-[#2C2C2E]">
                     <span>TOTAL DUE:</span>
@@ -2219,8 +2245,18 @@ export default function PosTerminal() {
 
                             {/* Client */}
                             <td class="py-3 px-4 whitespace-nowrap">
-                              <div class="text-zinc-200 font-medium truncate max-w-[140px]">
-                                {r.customer_name || "Staff Client"}
+                              <div
+                                class="text-zinc-200 font-medium truncate max-w-[150px]"
+                                title={r.company_name
+                                  ? `${r.company_name}${
+                                    r.customer_name
+                                      ? ` (${r.customer_name})`
+                                      : ""
+                                  }`
+                                  : r.customer_name || "Customer"}
+                              >
+                                {r.company_name || r.customer_name ||
+                                  "Customer"}
                               </div>
                               {r.customer_phone && (
                                 <div class="text-[10px] text-zinc-500 font-mono mt-0.5">
@@ -2415,6 +2451,27 @@ export default function PosTerminal() {
                   </span>
                 </h4>
                 <div class="grid grid-cols-2 gap-2 text-[11px] text-zinc-400 font-mono mt-2">
+                  <div class="col-span-2 text-zinc-200">
+                    <span class="text-zinc-500">Client:</span>
+                    <span class="font-semibold text-white">
+                      {selectedTicket.company_name ||
+                        selectedTicket.customer_name || "Customer"}
+                    </span>
+                    {selectedTicket.company_name &&
+                      selectedTicket.customer_name &&
+                      selectedTicket.company_name !==
+                        selectedTicket.customer_name &&
+                      (
+                        <span class="text-zinc-400 font-normal">
+                          ({selectedTicket.customer_name})
+                        </span>
+                      )}
+                    {selectedTicket.customer_phone && (
+                      <span class="text-zinc-400 font-mono ml-2">
+                        • {selectedTicket.customer_phone}
+                      </span>
+                    )}
+                  </div>
                   <div>Serial: {selectedTicket.serial_number || "None"}</div>
                   <div>
                     Passcode: {selectedTicket.passcode || "None provided"}

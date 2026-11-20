@@ -71,9 +71,13 @@ export function handler(ctxOrReq: any): Response {
   <div class="flex"><span>SUBTOTAL:</span><span>KES ${
       sampleReceipt.subtotal.toFixed(2)
     }</span></div>
-  <div class="flex"><span>VAT (16%):</span><span>KES ${
-      sampleReceipt.tax.toFixed(2)
-    }</span></div>
+  ${
+      sampleReceipt.tax > 0
+        ? `<div class="flex"><span>VAT (16%):</span><span>KES ${
+          sampleReceipt.tax.toFixed(2)
+        }</span></div>`
+        : `<div class="flex"><span>VAT (0% / Exempt):</span><span>KES 0.00</span></div>`
+    }
   <div class="flex bold" style="font-size: 14px;"><span>TOTAL:</span><span>KES ${
       sampleReceipt.grandTotal.toFixed(2)
     }</span></div>
