@@ -27,7 +27,12 @@ export async function handler(req: Request): Promise<Response> {
             { status: 400, headers: { "Content-Type": "application/json" } },
           );
         }
-        const ok = await service.updateRepairStatus(token, body.ticket_id, body.status, body.note);
+        const ok = await service.updateRepairStatus(
+          token,
+          body.ticket_id,
+          body.status,
+          body.note,
+        );
         return new Response(JSON.stringify({ success: ok }), {
           headers: { "Content-Type": "application/json" },
         });
@@ -36,11 +41,18 @@ export async function handler(req: Request): Promise<Response> {
       if (body.action === "add_note") {
         if (!body.ticket_id || !body.content) {
           return new Response(
-            JSON.stringify({ error: "Ticket ID and note content are required" }),
+            JSON.stringify({
+              error: "Ticket ID and note content are required",
+            }),
             { status: 400, headers: { "Content-Type": "application/json" } },
           );
         }
-        const ok = await service.addRepairNote(token, body.ticket_id, body.content, body.is_internal);
+        const ok = await service.addRepairNote(
+          token,
+          body.ticket_id,
+          body.content,
+          body.is_internal,
+        );
         return new Response(JSON.stringify({ success: ok }), {
           headers: { "Content-Type": "application/json" },
         });

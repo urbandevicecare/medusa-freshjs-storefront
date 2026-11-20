@@ -203,7 +203,9 @@ Deno.test("POS API - /api/pos/repairs endpoint (Workshop Intake & List)", async 
   assertEquals(statusRes.status, 200);
 
   // 4. Verify in list
-  const getReq2 = new Request("http://localhost:8000/api/pos/repairs?status=all");
+  const getReq2 = new Request(
+    "http://localhost:8000/api/pos/repairs?status=all",
+  );
   const getRes2 = await posRepairsHandler(getReq2);
   const getData2 = await getRes2.json();
   assertEquals(getData2.repairs.length >= 1, true);

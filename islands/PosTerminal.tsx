@@ -249,7 +249,9 @@ export default function PosTerminal() {
   const [isIntaking, setIsIntaking] = useState(false);
   const [intakeError, setIntakeError] = useState<string | null>(null);
   const [updatingTicketStatus, setUpdatingTicketStatus] = useState(false);
-  const [ticketStatusSelect, setTicketStatusSelect] = useState<string>("received");
+  const [ticketStatusSelect, setTicketStatusSelect] = useState<string>(
+    "received",
+  );
   const [ticketNoteInput, setTicketNoteInput] = useState("");
   const [isAddingTicketNote, setIsAddingTicketNote] = useState(false);
   const [intakeForm, setIntakeForm] = useState({
@@ -1055,7 +1057,9 @@ export default function PosTerminal() {
 
       setSelectedTicket((prev) => prev ? { ...prev, status: newStatus } : null);
       setRepairs((prev) =>
-        prev.map((r) => r.id === selectedTicket.id ? { ...r, status: newStatus } : r)
+        prev.map((r) =>
+          r.id === selectedTicket.id ? { ...r, status: newStatus } : r
+        )
       );
       setStatusNotice(
         `✔ Status for #${selectedTicket.ticket_number} updated to ${newStatus}.`,
@@ -1063,7 +1067,9 @@ export default function PosTerminal() {
     } catch {
       setSelectedTicket((prev) => prev ? { ...prev, status: newStatus } : null);
       setRepairs((prev) =>
-        prev.map((r) => r.id === selectedTicket.id ? { ...r, status: newStatus } : r)
+        prev.map((r) =>
+          r.id === selectedTicket.id ? { ...r, status: newStatus } : r
+        )
       );
     } finally {
       setUpdatingTicketStatus(false);
@@ -1142,15 +1148,30 @@ export default function PosTerminal() {
       : (ticket.total_estimate || 0);
     const paid = ticket.amount_paid || ticket.deposit_amount || 0;
     if (ticket.payment_status === "refunded") {
-      return { label: "Refunded", badgeClass: "bg-amber-500/15 text-amber-300 border-amber-500/30" };
+      return {
+        label: "Refunded",
+        badgeClass: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+      };
     }
-    if ((paid >= total && (total > 0 || paid > 0)) || ticket.payment_status === "captured") {
-      return { label: "Paid", badgeClass: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" };
+    if (
+      (paid >= total && (total > 0 || paid > 0)) ||
+      ticket.payment_status === "captured"
+    ) {
+      return {
+        label: "Paid",
+        badgeClass: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+      };
     }
     if (paid > 0 && paid < total) {
-      return { label: "Partially Paid", badgeClass: "bg-amber-500/15 text-amber-300 border-amber-500/30" };
+      return {
+        label: "Partially Paid",
+        badgeClass: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+      };
     }
-    return { label: "Unpaid", badgeClass: "bg-red-500/15 text-red-400 border-red-500/30" };
+    return {
+      label: "Unpaid",
+      badgeClass: "bg-red-500/15 text-red-400 border-red-500/30",
+    };
   };
 
   // Filtered repairs
@@ -1247,48 +1268,6 @@ export default function PosTerminal() {
               )}
             </button>
           </form>
-
-          {/* Quick Staff Presets */}
-          <div class="mt-6 pt-4 border-t border-[#2C2C2E]">
-            <p class="text-[10px] uppercase font-bold text-zinc-500 mb-2 tracking-wider text-center">
-              Quick Staff Presets (All Admin Accounts)
-            </p>
-            <div class="grid grid-cols-3 gap-1.5">
-              <button
-                type="button"
-                onClick={() => {
-                  setLoginEmail("nelly@urbandevicecare.co.uk");
-                  setLoginPassword("password");
-                }}
-                class="py-1.5 px-2 bg-[#2C2C2E] hover:bg-zinc-700 border border-[#3A3A3C] rounded text-[11px] text-zinc-300 transition text-center truncate"
-                title="Store Manager"
-              >
-                Nelly (Manager)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setLoginEmail("dan@urbandevicecare.co.uk");
-                  setLoginPassword("password");
-                }}
-                class="py-1.5 px-2 bg-[#2C2C2E] hover:bg-zinc-700 border border-[#3A3A3C] rounded text-[11px] text-zinc-300 transition text-center truncate"
-                title="Repair Technician"
-              >
-                Dan (Tech)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setLoginEmail("alex@urbandevicecare.co.uk");
-                  setLoginPassword("password");
-                }}
-                class="py-1.5 px-2 bg-[#2C2C2E] hover:bg-zinc-700 border border-[#3A3A3C] rounded text-[11px] text-zinc-300 transition text-center truncate"
-                title="Cashier"
-              >
-                Alex (Cashier)
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     );
@@ -1942,9 +1921,11 @@ export default function PosTerminal() {
                                 {payBadge.label}
                               </span>
                               <span
-                                class={`text-[10px] font-semibold capitalize px-2 py-0.5 rounded-full border ${getStatusBadge(
-                                  r.status,
-                                )}`}
+                                class={`text-[10px] font-semibold capitalize px-2 py-0.5 rounded-full border ${
+                                  getStatusBadge(
+                                    r.status,
+                                  )
+                                }`}
                               >
                                 {r.status.replace("_", " ")}
                               </span>
@@ -2038,9 +2019,11 @@ export default function PosTerminal() {
                       Repair Ticket #{selectedTicket.ticket_number}
                     </h3>
                     <span
-                      class={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${getPaymentBadge(
-                        selectedTicket,
-                      ).badgeClass}`}
+                      class={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                        getPaymentBadge(
+                          selectedTicket,
+                        ).badgeClass
+                      }`}
                     >
                       {getPaymentBadge(selectedTicket).label}
                     </span>
@@ -2519,7 +2502,8 @@ export default function PosTerminal() {
                     onChange={(e) =>
                       setIntakeForm({
                         ...intakeForm,
-                        dataWipedConsent: (e.target as HTMLInputElement).checked,
+                        dataWipedConsent:
+                          (e.target as HTMLInputElement).checked,
                       })}
                     class="rounded border-zinc-700 bg-zinc-800 text-blue-600 focus:ring-0"
                   />

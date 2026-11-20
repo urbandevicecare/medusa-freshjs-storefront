@@ -178,7 +178,6 @@ export class MedusaPOSService {
   // Live workshop repairs store (Zero dummy data: populated dynamically via /admin/repairs)
   private static repairsStore: RepairTicketRecord[] = [];
 
-
   // Workshop fallback catalog for offline POS operation
   private mockParts: ProductVariant[] = [
     {
@@ -765,18 +764,36 @@ export class MedusaPOSService {
           const data = await resp.json();
           const list = data.repair_tickets || [];
           const formatted: RepairTicketRecord[] = list.map((t: any) => {
-            const partsEst = Number(t.parts_estimate?.value ?? t.parts_estimate ?? 0);
-            const laborEst = Number(t.labor_estimate?.value ?? t.labor_estimate ?? 0);
-            const totalEst = Number(t.total_estimate?.value ?? t.total_estimate ?? (partsEst + laborEst));
-            const partsAct = Number(t.parts_actual?.value ?? t.parts_actual ?? 0);
-            const laborAct = Number(t.labor_actual?.value ?? t.labor_actual ?? 0);
-            const totalAct = Number(t.total_actual?.value ?? t.total_actual ?? (partsAct + laborAct));
-            const amountPaid = Number(t.amount_paid?.value ?? t.amount_paid ?? t.metadata?.deposit_amount ?? 0);
+            const partsEst = Number(
+              t.parts_estimate?.value ?? t.parts_estimate ?? 0,
+            );
+            const laborEst = Number(
+              t.labor_estimate?.value ?? t.labor_estimate ?? 0,
+            );
+            const totalEst = Number(
+              t.total_estimate?.value ?? t.total_estimate ??
+                (partsEst + laborEst),
+            );
+            const partsAct = Number(
+              t.parts_actual?.value ?? t.parts_actual ?? 0,
+            );
+            const laborAct = Number(
+              t.labor_actual?.value ?? t.labor_actual ?? 0,
+            );
+            const totalAct = Number(
+              t.total_actual?.value ?? t.total_actual ?? (partsAct + laborAct),
+            );
+            const amountPaid = Number(
+              t.amount_paid?.value ?? t.amount_paid ??
+                t.metadata?.deposit_amount ?? 0,
+            );
             const targetTotal = totalAct > 0 ? totalAct : totalEst;
             const balDue = Math.max(0, targetTotal - amountPaid);
 
             let paymentStatus: RepairPaymentStatus = "pending";
-            if (amountPaid >= targetTotal && (targetTotal > 0 || amountPaid > 0)) {
+            if (
+              amountPaid >= targetTotal && (targetTotal > 0 || amountPaid > 0)
+            ) {
               paymentStatus = "captured";
             } else if (amountPaid > 0) {
               paymentStatus = "partially_paid";
@@ -787,7 +804,8 @@ export class MedusaPOSService {
               ticket_number: t.ticket_number || `REP-${t.id?.slice(-5)}`,
               customer_id: t.customer_id,
               customer_name: t.customer?.first_name
-                ? `${t.customer.first_name} ${t.customer.last_name || ""}`.trim()
+                ? `${t.customer.first_name} ${t.customer.last_name || ""}`
+                  .trim()
                 : (t.customer_name || "Workshop Client"),
               customer_phone: t.customer?.phone || t.customer_phone || "",
               customer_email: t.customer?.email || t.customer_email || "",
@@ -798,13 +816,15 @@ export class MedusaPOSService {
                   id: t.device.id,
                   brand: t.device.brand || "Apple",
                   model_name: t.device.model_name || t.device_name || "MacBook",
-                  serial_number: t.device.serial_number || t.serial_number || "",
+                  serial_number: t.device.serial_number || t.serial_number ||
+                    "",
                   imei: t.device.imei || undefined,
                   condition: t.device.condition || undefined,
                   device_type: t.device.device_type || "laptop",
                 }
                 : undefined,
-              device_name: t.device?.model_name || t.device_name || `${t.device?.brand || "Apple"} Device`,
+              device_name: t.device?.model_name || t.device_name ||
+                `${t.device?.brand || "Apple"} Device`,
               serial_number: t.device?.serial_number || t.serial_number || "",
               status: (t.status || "received") as RepairStatus,
               issue_description: t.issue_description || "",
@@ -948,7 +968,9 @@ export class MedusaPOSService {
           const record: RepairTicketRecord = {
             id: t.id || `rep_${Date.now()}`,
             ticket_number: t.ticket_number ||
-              `REP-${t.id?.slice(-5) || Math.floor(10000 + Math.random() * 90000)}`,
+              `REP-${
+                t.id?.slice(-5) || Math.floor(10000 + Math.random() * 90000)
+              }`,
             customer_id: input.customer_id,
             customer_name: input.customer_name || "Workshop Client",
             customer_phone: input.customer_phone || "",
@@ -976,7 +998,11 @@ export class MedusaPOSService {
             amount_paid: deposit,
             deposit_amount: deposit,
             balance_due: balanceDue,
-            payment_status: deposit >= totalEst && totalEst > 0 ? "captured" : deposit > 0 ? "partially_paid" : "pending",
+            payment_status: deposit >= totalEst && totalEst > 0
+              ? "captured"
+              : deposit > 0
+              ? "partially_paid"
+              : "pending",
             warranty_months: t.warranty_months ?? 3,
             terms_accepted: input.terms_accepted ?? true,
             data_wiped_consent: input.data_wiped_consent ?? true,
@@ -1021,7 +1047,11 @@ export class MedusaPOSService {
       amount_paid: deposit,
       deposit_amount: deposit,
       balance_due: balanceDue,
-      payment_status: deposit >= totalEst && totalEst > 0 ? "captured" : deposit > 0 ? "partially_paid" : "pending",
+      payment_status: deposit >= totalEst && totalEst > 0
+        ? "captured"
+        : deposit > 0
+        ? "partially_paid"
+        : "pending",
       warranty_months: 3,
       terms_accepted: input.terms_accepted ?? true,
       data_wiped_consent: input.data_wiped_consent ?? true,
@@ -1042,21 +1072,30 @@ export class MedusaPOSService {
   ): Promise<boolean> {
     if (this.backendUrl && (authToken || this.publishableKey)) {
       try {
-        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
         if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
-        if (this.publishableKey) headers["x-publishable-api-key"] = this.publishableKey;
+        if (this.publishableKey) {
+          headers["x-publishable-api-key"] = this.publishableKey;
+        }
 
-        const resp = await fetch(`${this.backendUrl}/admin/repairs/${ticketId}/status`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ status, note }),
-        });
+        const resp = await fetch(
+          `${this.backendUrl}/admin/repairs/${ticketId}/status`,
+          {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ status, note }),
+          },
+        );
         if (resp.ok) return true;
       } catch {
         // Fall back to local
       }
     }
-    const local = MedusaPOSService.repairsStore.find((r) => r.id === ticketId || r.ticket_number === ticketId);
+    const local = MedusaPOSService.repairsStore.find((r) =>
+      r.id === ticketId || r.ticket_number === ticketId
+    );
     if (local) {
       local.status = status;
       return true;
@@ -1075,21 +1114,30 @@ export class MedusaPOSService {
   ): Promise<boolean> {
     if (this.backendUrl && (authToken || this.publishableKey)) {
       try {
-        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
         if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
-        if (this.publishableKey) headers["x-publishable-api-key"] = this.publishableKey;
+        if (this.publishableKey) {
+          headers["x-publishable-api-key"] = this.publishableKey;
+        }
 
-        const resp = await fetch(`${this.backendUrl}/admin/repairs/${ticketId}/notes`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ content, is_internal: isInternal }),
-        });
+        const resp = await fetch(
+          `${this.backendUrl}/admin/repairs/${ticketId}/notes`,
+          {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ content, is_internal: isInternal }),
+          },
+        );
         if (resp.ok) return true;
       } catch {
         // Fall back to local
       }
     }
-    const local = MedusaPOSService.repairsStore.find((r) => r.id === ticketId || r.ticket_number === ticketId);
+    const local = MedusaPOSService.repairsStore.find((r) =>
+      r.id === ticketId || r.ticket_number === ticketId
+    );
     if (local) {
       if (!local.notes) local.notes = [];
       local.notes.push({
