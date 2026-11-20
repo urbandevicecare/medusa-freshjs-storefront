@@ -158,7 +158,7 @@ Deno.test("POS API - /api/pos/auth endpoint (Medusa Admin login)", async () => {
 });
 
 Deno.test("POS API - /api/pos/repairs endpoint (Workshop Intake & List)", async () => {
-  // 1. GET repairs
+  // 1. Initial list with zero dummy data
   const getReq = new Request(
     "http://localhost:8000/api/pos/repairs?status=all",
   );
@@ -166,7 +166,7 @@ Deno.test("POS API - /api/pos/repairs endpoint (Workshop Intake & List)", async 
   assertEquals(getRes.status, 200);
   const getData = await getRes.json();
   assertExists(getData.repairs);
-  assertEquals(getData.repairs.length >= 2, true);
+  assertEquals(Array.isArray(getData.repairs), true);
 
   // 2. POST repair intake
   const postReq = new Request("http://localhost:8000/api/pos/repairs", {
@@ -187,4 +187,24 @@ Deno.test("POS API - /api/pos/repairs endpoint (Workshop Intake & List)", async 
   const postData = await postRes.json();
   assertEquals(postData.success, true);
   assertEquals(postData.repair.balance_due, 6000);
+
+  // 3. Status update
+  const statusReq = new Request("http://localhost:8000/api/pos/repairs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "update_status",
+      ticket_id: postData.repair.id,
+      status: "diagnosing",
+      note: "Inspection started",
+    }),
+  });
+  const statusRes = await posRepairsHandler(statusReq);
+  assertEquals(statusRes.status, 200);
+
+  // 4. Verify in list
+  const getReq2 = new Request("http://localhost:8000/api/pos/repairs?status=all");
+  const getRes2 = await posRepairsHandler(getReq2);
+  const getData2 = await getRes2.json();
+  assertEquals(getData2.repairs.length >= 1, true);
 });

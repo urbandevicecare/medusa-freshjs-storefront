@@ -69,10 +69,15 @@ export interface RepairTicketRecord {
   customer_name?: string;
   customer_phone?: string;
   customer_email?: string;
+  technician_id?: string;
+  technician_name?: string;
   device?: {
+    id?: string;
     brand: string;
     model_name: string;
     serial_number?: string;
+    imei?: string;
+    condition?: string;
     device_type?: string;
   };
   device_name?: string;
@@ -87,6 +92,7 @@ export interface RepairTicketRecord {
     | "completed"
     | "collected"
     | "cancelled"
+    | "refunded"
     | string;
   issue_description: string;
   accessories?: string;
@@ -94,8 +100,30 @@ export interface RepairTicketRecord {
   parts_estimate?: number;
   labor_estimate?: number;
   total_estimate?: number;
+  parts_actual?: number;
+  labor_actual?: number;
+  total_actual?: number;
+  amount_paid?: number;
+  payment_status?: string;
   deposit_amount?: number;
   balance_due?: number;
+  warranty_months?: number;
+  estimated_completion?: string;
+  terms_accepted?: boolean;
+  data_wiped_consent?: boolean;
+  notes?: Array<{
+    id: string;
+    content: string;
+    is_internal: boolean;
+    created_at: string;
+  }>;
+  updates?: Array<{
+    id: string;
+    message: string;
+    author_type: string;
+    author_id?: string;
+    created_at: string;
+  }>;
   created_at: string;
 }
 
@@ -220,18 +248,27 @@ export default function PosTerminal() {
   const [showIntakeModal, setShowIntakeModal] = useState(false);
   const [isIntaking, setIsIntaking] = useState(false);
   const [intakeError, setIntakeError] = useState<string | null>(null);
+  const [updatingTicketStatus, setUpdatingTicketStatus] = useState(false);
+  const [ticketStatusSelect, setTicketStatusSelect] = useState<string>("received");
+  const [ticketNoteInput, setTicketNoteInput] = useState("");
+  const [isAddingTicketNote, setIsAddingTicketNote] = useState(false);
   const [intakeForm, setIntakeForm] = useState({
     brand: "Apple",
     modelName: "",
     deviceType: "laptop",
     serialNumber: "",
+    imei: "",
+    condition: "",
     passcode: "",
     issueDescription: "",
     accessories: "",
+    technicianName: "",
     partsEstimate: "0",
     laborEstimate: "2000",
     totalEstimate: "2000",
     depositAmount: "0",
+    termsAccepted: true,
+    dataWipedConsent: true,
   });
 
   // Hardware wedge scanner buffer
@@ -884,13 +921,18 @@ export default function PosTerminal() {
         model_name: intakeForm.modelName.trim(),
         device_type: intakeForm.deviceType,
         serial_number: intakeForm.serialNumber.trim() || undefined,
+        imei: intakeForm.imei.trim() || undefined,
+        condition: intakeForm.condition.trim() || undefined,
         passcode: intakeForm.passcode.trim() || undefined,
         issue_description: intakeForm.issueDescription.trim(),
         accessories: intakeForm.accessories.trim() || undefined,
+        technician_name: intakeForm.technicianName.trim() || undefined,
         parts_estimate: parseFloat(intakeForm.partsEstimate) || 0,
         labor_estimate: parseFloat(intakeForm.laborEstimate) || 0,
         total_estimate: totalEst,
         deposit_amount: deposit,
+        terms_accepted: intakeForm.termsAccepted,
+        data_wiped_consent: intakeForm.dataWipedConsent,
       };
 
       const headers: Record<string, string> = {
@@ -932,13 +974,18 @@ export default function PosTerminal() {
         modelName: "",
         deviceType: "laptop",
         serialNumber: "",
+        imei: "",
+        condition: "",
         passcode: "",
         issueDescription: "",
         accessories: "",
+        technicianName: "",
         partsEstimate: "0",
         laborEstimate: "2000",
         totalEstimate: "2000",
         depositAmount: "0",
+        termsAccepted: true,
+        dataWipedConsent: true,
       });
 
       // View details of newly created ticket
@@ -988,6 +1035,124 @@ export default function PosTerminal() {
     );
   };
 
+  const handleUpdateTicketStatus = async (newStatus: string) => {
+    if (!selectedTicket) return;
+    setUpdatingTicketStatus(true);
+    try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (adminToken) headers["Authorization"] = `Bearer ${adminToken}`;
+      await fetch("/api/pos/repairs", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          action: "update_status",
+          ticket_id: selectedTicket.id,
+          status: newStatus,
+        }),
+      });
+
+      setSelectedTicket((prev) => prev ? { ...prev, status: newStatus } : null);
+      setRepairs((prev) =>
+        prev.map((r) => r.id === selectedTicket.id ? { ...r, status: newStatus } : r)
+      );
+      setStatusNotice(
+        `✔ Status for #${selectedTicket.ticket_number} updated to ${newStatus}.`,
+      );
+    } catch {
+      setSelectedTicket((prev) => prev ? { ...prev, status: newStatus } : null);
+      setRepairs((prev) =>
+        prev.map((r) => r.id === selectedTicket.id ? { ...r, status: newStatus } : r)
+      );
+    } finally {
+      setUpdatingTicketStatus(false);
+    }
+  };
+
+  const handleAddTicketNote = async () => {
+    if (!selectedTicket || !ticketNoteInput.trim()) return;
+    setIsAddingTicketNote(true);
+    try {
+      const noteContent = ticketNoteInput.trim();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (adminToken) headers["Authorization"] = `Bearer ${adminToken}`;
+      await fetch("/api/pos/repairs", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          action: "add_note",
+          ticket_id: selectedTicket.id,
+          content: noteContent,
+          is_internal: true,
+        }),
+      });
+
+      const newNote = {
+        id: `note_${Date.now()}`,
+        content: noteContent,
+        is_internal: true,
+        created_at: new Date().toISOString(),
+      };
+      setSelectedTicket((prev) =>
+        prev ? { ...prev, notes: [...(prev.notes || []), newNote] } : null
+      );
+      setRepairs((prev) =>
+        prev.map((r) =>
+          r.id === selectedTicket.id
+            ? { ...r, notes: [...(r.notes || []), newNote] }
+            : r
+        )
+      );
+      setTicketNoteInput("");
+      setStatusNotice(`✔ Note added to #${selectedTicket.ticket_number}.`);
+    } catch {
+      // fallback
+    } finally {
+      setIsAddingTicketNote(false);
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case "ready":
+      case "completed":
+      case "collected":
+        return "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
+      case "diagnosing":
+      case "repairing":
+        return "bg-blue-500/15 text-blue-400 border-blue-500/30";
+      case "awaiting_approval":
+      case "refunded":
+        return "bg-amber-500/15 text-amber-300 border-amber-500/30";
+      case "cancelled":
+        return "bg-red-500/15 text-red-400 border-red-500/30";
+      case "pending_dropoff":
+      case "received":
+      default:
+        return "bg-zinc-800 text-zinc-300 border-zinc-700";
+    }
+  };
+
+  const getPaymentBadge = (ticket: RepairTicketRecord) => {
+    const total = (ticket.total_actual && ticket.total_actual > 0)
+      ? ticket.total_actual
+      : (ticket.total_estimate || 0);
+    const paid = ticket.amount_paid || ticket.deposit_amount || 0;
+    if (ticket.payment_status === "refunded") {
+      return { label: "Refunded", badgeClass: "bg-amber-500/15 text-amber-300 border-amber-500/30" };
+    }
+    if ((paid >= total && (total > 0 || paid > 0)) || ticket.payment_status === "captured") {
+      return { label: "Paid", badgeClass: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" };
+    }
+    if (paid > 0 && paid < total) {
+      return { label: "Partially Paid", badgeClass: "bg-amber-500/15 text-amber-300 border-amber-500/30" };
+    }
+    return { label: "Unpaid", badgeClass: "bg-red-500/15 text-red-400 border-red-500/30" };
+  };
+
   // Filtered repairs
   const filteredRepairs = repairs.filter((r) => {
     const matchesStatus = repairStatusFilter === "all" ||
@@ -1000,6 +1165,7 @@ export default function PosTerminal() {
       (r.customer_name || "").toLowerCase().includes(q) ||
       (r.device_name || "").toLowerCase().includes(q) ||
       (r.serial_number || "").toLowerCase().includes(q) ||
+      (r.technician_name || "").toLowerCase().includes(q) ||
       r.issue_description.toLowerCase().includes(q)
     );
   });
@@ -1154,41 +1320,43 @@ export default function PosTerminal() {
           </div>
         </div>
 
-        {/* Tab Switcher: Counter POS vs Workshop Intake */}
-        <div class="flex items-center space-x-1 bg-[#2C2C2E] p-1 rounded-lg border border-[#3A3A3C] my-2 sm:my-0">
+        {/* Minimalist Segmented Navigation: POS Register vs Repairs */}
+        <nav class="flex items-center p-1 bg-[#18181B] border border-zinc-800 rounded-xl shadow-inner gap-1 my-2 sm:my-0">
           <button
+            type="button"
             onClick={() => setActiveTab("counter")}
-            class={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition ${
+            class={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium tracking-wide transition-all duration-150 ${
               activeTab === "counter"
-                ? "bg-blue-600 text-white shadow"
-                : "text-zinc-400 hover:text-white"
+                ? "bg-zinc-800 text-white shadow-sm border border-zinc-700/60"
+                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40"
             }`}
           >
             <ShoppingCart class="w-3.5 h-3.5" />
-            <span>Counter POS</span>
+            <span>POS Register</span>
             {cart.length > 0 && (
-              <span class="ml-1 bg-white/20 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">
+              <span class="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
                 {cart.length}
               </span>
             )}
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab("workshop")}
-            class={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition ${
+            class={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium tracking-wide transition-all duration-150 ${
               activeTab === "workshop"
-                ? "bg-blue-600 text-white shadow"
-                : "text-zinc-400 hover:text-white"
+                ? "bg-zinc-800 text-white shadow-sm border border-zinc-700/60"
+                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40"
             }`}
           >
             <Wrench class="w-3.5 h-3.5" />
-            <span>Workshop &amp; Repairs</span>
+            <span>Repairs</span>
             {repairs.length > 0 && (
-              <span class="ml-1 bg-white/20 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">
+              <span class="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
                 {repairs.length}
               </span>
             )}
           </button>
-        </div>
+        </nav>
 
         {/* Active Staff Account & Sign Out */}
         <div class="flex items-center space-x-2">
@@ -1680,26 +1848,31 @@ export default function PosTerminal() {
               />
             </div>
 
-            {/* Status Pills */}
-            <div class="flex items-center space-x-1 overflow-x-auto pb-1 sm:pb-0">
+            {/* Status Filter Tabs */}
+            <div class="flex items-center space-x-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
               {[
-                "all",
-                "received",
-                "diagnosing",
-                "repairing",
-                "ready",
-                "completed",
+                { id: "all", label: "All" },
+                { id: "pending_dropoff", label: "Dropoff" },
+                { id: "received", label: "Received" },
+                { id: "diagnosing", label: "Diagnosing" },
+                { id: "awaiting_approval", label: "Approval" },
+                { id: "repairing", label: "Repairing" },
+                { id: "ready", label: "Ready" },
+                { id: "completed", label: "Completed" },
+                { id: "collected", label: "Collected" },
+                { id: "cancelled", label: "Cancelled" },
+                { id: "refunded", label: "Refunded" },
               ].map((st) => (
                 <button
-                  key={st}
-                  onClick={() => setRepairStatusFilter(st)}
-                  class={`px-2.5 py-1 rounded text-[11px] font-semibold capitalize transition ${
-                    repairStatusFilter === st
-                      ? "bg-blue-600 text-white"
-                      : "bg-[#2C2C2E] text-zinc-400 hover:text-white"
+                  key={st.id}
+                  onClick={() => setRepairStatusFilter(st.id)}
+                  class={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+                    repairStatusFilter === st.id
+                      ? "bg-zinc-800 text-white border border-zinc-700 shadow-sm"
+                      : "text-zinc-400 hover:text-white hover:bg-zinc-800/40"
                   }`}
                 >
-                  {st}
+                  {st.label}
                 </button>
               ))}
             </div>
@@ -1750,35 +1923,36 @@ export default function PosTerminal() {
                         0,
                         (r.total_estimate || 0) - (r.deposit_amount || 0),
                       );
+                    const payBadge = getPaymentBadge(r);
                     return (
                       <div
                         key={r.id}
                         onClick={() => setSelectedTicket(r)}
-                        class="bg-[#1C1C1E] hover:bg-[#242426] border border-[#2C2C2E] hover:border-[#3A3A3C] p-4 rounded-xl cursor-pointer transition flex flex-col justify-between group shadow-sm"
+                        class="bg-[#1C1C1E] hover:bg-[#222224] border border-[#2C2C2E] hover:border-zinc-700 p-4 rounded-xl cursor-pointer transition flex flex-col justify-between group shadow-sm hover:shadow-md"
                       >
                         <div>
                           <div class="flex items-center justify-between mb-2">
                             <span class="text-xs font-mono font-bold text-blue-400 group-hover:underline">
                               #{r.ticket_number}
                             </span>
-                            <span
-                              class={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${
-                                r.status === "ready"
-                                  ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                                  : r.status === "diagnosing"
-                                  ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
-                                  : r.status === "repairing"
-                                  ? "bg-blue-500/20 text-blue-300 border-blue-500/30"
-                                  : "bg-purple-500/20 text-purple-300 border-purple-500/30"
-                              }`}
-                            >
-                              {r.status}
-                            </span>
+                            <div class="flex items-center space-x-1.5">
+                              <span
+                                class={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${payBadge.badgeClass}`}
+                              >
+                                {payBadge.label}
+                              </span>
+                              <span
+                                class={`text-[10px] font-semibold capitalize px-2 py-0.5 rounded-full border ${getStatusBadge(
+                                  r.status,
+                                )}`}
+                              >
+                                {r.status.replace("_", " ")}
+                              </span>
+                            </div>
                           </div>
 
                           <h3 class="text-xs font-bold text-zinc-100 line-clamp-1 mb-1">
-                            {r.device_name || r.device?.model_name ||
-                              "Apple Device"}
+                            {r.device_name || r.device?.model_name || "Device"}
                           </h3>
                           <p class="text-[11px] text-zinc-400 line-clamp-2 mb-3">
                             {r.issue_description}
@@ -1788,7 +1962,7 @@ export default function PosTerminal() {
                             <div class="flex justify-between">
                               <span class="text-zinc-500">Client:</span>
                               <span class="text-zinc-300 truncate max-w-[150px]">
-                                {r.customer_name || "Staff Walk-in"}
+                                {r.customer_name || "Staff Client"}
                               </span>
                             </div>
                             {r.serial_number && (
@@ -1796,6 +1970,14 @@ export default function PosTerminal() {
                                 <span class="text-zinc-500">Serial:</span>
                                 <span class="text-zinc-300">
                                   {r.serial_number}
+                                </span>
+                              </div>
+                            )}
+                            {r.technician_name && (
+                              <div class="flex justify-between">
+                                <span class="text-zinc-500">Tech:</span>
+                                <span class="text-zinc-300">
+                                  {r.technician_name}
                                 </span>
                               </div>
                             )}
@@ -1816,9 +1998,10 @@ export default function PosTerminal() {
                               e.stopPropagation();
                               tenderRepairBalance(r);
                             }}
-                            class="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded text-[11px] font-semibold transition active:scale-95 shadow"
+                            class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold transition active:scale-95 shadow flex items-center space-x-1"
                           >
-                            Tender →
+                            <ShoppingCart class="w-3 h-3" />
+                            <span>Tender</span>
                           </button>
                         </div>
                       </div>
@@ -1843,16 +2026,25 @@ export default function PosTerminal() {
       {/* ==================================================== */}
       {selectedTicket && (
         <div class="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div class="bg-[#1C1C1E] border border-[#3A3A3C] rounded-2xl p-5 max-w-lg w-full shadow-2xl">
+          <div class="bg-[#1C1C1E] border border-[#3A3A3C] rounded-2xl p-5 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 mb-4 border-b border-[#2C2C2E]">
               <div class="flex items-center space-x-2.5">
                 <div class="w-8 h-8 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold">
                   <Wrench class="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 class="text-sm font-bold text-white">
-                    Repair Ticket #{selectedTicket.ticket_number}
-                  </h3>
+                  <div class="flex items-center space-x-2">
+                    <h3 class="text-sm font-bold text-white">
+                      Repair Ticket #{selectedTicket.ticket_number}
+                    </h3>
+                    <span
+                      class={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${getPaymentBadge(
+                        selectedTicket,
+                      ).badgeClass}`}
+                    >
+                      {getPaymentBadge(selectedTicket).label}
+                    </span>
+                  </div>
                   <p class="text-[11px] text-zinc-400">
                     Created:{" "}
                     {new Date(selectedTicket.created_at).toLocaleString()}
@@ -1868,6 +2060,41 @@ export default function PosTerminal() {
             </div>
 
             <div class="space-y-3 text-xs">
+              {/* Quick Status Updater */}
+              <div class="bg-[#242426] p-3 rounded-lg border border-[#3A3A3C] flex items-center justify-between gap-2">
+                <div class="flex items-center space-x-2">
+                  <span class="text-[11px] font-semibold text-zinc-300">
+                    Status:
+                  </span>
+                  <select
+                    value={selectedTicket.status}
+                    onChange={(e) =>
+                      handleUpdateTicketStatus(
+                        (e.target as HTMLSelectElement).value,
+                      )}
+                    disabled={updatingTicketStatus}
+                    class="bg-[#1C1C1E] border border-[#3A3A3C] rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500 capitalize"
+                  >
+                    <option value="pending_dropoff">Pending Dropoff</option>
+                    <option value="received">Received</option>
+                    <option value="diagnosing">Diagnosing</option>
+                    <option value="awaiting_approval">Awaiting Approval</option>
+                    <option value="repairing">Repairing</option>
+                    <option value="ready">Ready for Pickup</option>
+                    <option value="completed">Completed</option>
+                    <option value="collected">Collected</option>
+                    <option value="cancelled">Cancelled</option>
+                    <option value="refunded">Refunded</option>
+                  </select>
+                </div>
+                {updatingTicketStatus && (
+                  <span class="text-[10px] text-blue-400 animate-pulse">
+                    Updating...
+                  </span>
+                )}
+              </div>
+
+              {/* Device & Client Card */}
               <div class="bg-[#2C2C2E] p-3 rounded-lg border border-[#3A3A3C]">
                 <h4 class="font-bold text-zinc-200 mb-1 flex items-center space-x-1.5">
                   <Laptop class="w-3.5 h-3.5 text-zinc-400" />
@@ -1883,9 +2110,20 @@ export default function PosTerminal() {
                   </div>
                   <div>Brand: {selectedTicket.device?.brand || "Apple"}</div>
                   <div>Accessories: {selectedTicket.accessories || "None"}</div>
+                  {selectedTicket.device?.condition && (
+                    <div class="col-span-2">
+                      Condition: {selectedTicket.device.condition}
+                    </div>
+                  )}
+                  {selectedTicket.technician_name && (
+                    <div class="col-span-2 text-zinc-300">
+                      Technician: {selectedTicket.technician_name}
+                    </div>
+                  )}
                 </div>
               </div>
 
+              {/* Fault & Diagnostics */}
               <div>
                 <label class="block text-[11px] font-semibold text-zinc-400 mb-0.5">
                   Fault &amp; Diagnostics
@@ -1895,6 +2133,55 @@ export default function PosTerminal() {
                 </p>
               </div>
 
+              {/* Notes & Updates Section */}
+              <div class="bg-[#2C2C2E] p-3 rounded-lg border border-[#3A3A3C] space-y-2">
+                <span class="text-[11px] font-semibold text-zinc-300 block">
+                  Repair Notes &amp; Updates:
+                </span>
+                {selectedTicket.notes && selectedTicket.notes.length > 0
+                  ? (
+                    <div class="space-y-1.5 max-h-28 overflow-y-auto pr-1">
+                      {selectedTicket.notes.map((n) => (
+                        <div
+                          key={n.id}
+                          class="p-2 rounded bg-[#1C1C1E] border border-zinc-700/50 text-[11px] text-zinc-300"
+                        >
+                          <p>{n.content}</p>
+                          <span class="text-[9px] text-zinc-500 font-mono mt-0.5 block">
+                            {new Date(n.created_at).toLocaleString()}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                  : (
+                    <p class="text-[10px] text-zinc-500 italic">
+                      No workshop notes recorded yet.
+                    </p>
+                  )}
+
+                {/* Add Note Input */}
+                <div class="flex items-center space-x-1.5 pt-1">
+                  <input
+                    type="text"
+                    value={ticketNoteInput}
+                    onInput={(e) =>
+                      setTicketNoteInput((e.target as HTMLInputElement).value)}
+                    placeholder="Add technician note..."
+                    class="flex-1 bg-[#1C1C1E] border border-[#3A3A3C] rounded px-2.5 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddTicketNote}
+                    disabled={isAddingTicketNote || !ticketNoteInput.trim()}
+                    class="px-2.5 py-1 bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50 text-white rounded text-xs font-medium transition"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+
+              {/* Financial Breakdown */}
               <div class="bg-[#2C2C2E] p-3 rounded-lg border border-[#3A3A3C] space-y-1 font-mono text-xs">
                 <div class="flex justify-between text-zinc-400">
                   <span>Total Estimate:</span>
@@ -1905,7 +2192,8 @@ export default function PosTerminal() {
                 <div class="flex justify-between text-zinc-400">
                   <span>Deposit Paid:</span>
                   <span>
-                    KES {(selectedTicket.deposit_amount || 0).toFixed(2)}
+                    KES {(selectedTicket.deposit_amount ||
+                      selectedTicket.amount_paid || 0).toFixed(2)}
                   </span>
                 </div>
                 <div class="flex justify-between text-emerald-400 font-bold pt-1 border-t border-[#3A3A3C]">
@@ -2072,7 +2360,7 @@ export default function PosTerminal() {
               <div class="grid grid-cols-2 gap-3">
                 <div>
                   <label class="block text-[11px] font-semibold text-zinc-300 mb-1">
-                    Serial Number / IMEI
+                    Serial Number
                   </label>
                   <input
                     type="text"
@@ -2088,7 +2376,42 @@ export default function PosTerminal() {
                 </div>
                 <div>
                   <label class="block text-[11px] font-semibold text-zinc-300 mb-1">
-                    Passcode / PIN
+                    IMEI
+                  </label>
+                  <input
+                    type="text"
+                    value={intakeForm.imei}
+                    onInput={(e) =>
+                      setIntakeForm({
+                        ...intakeForm,
+                        imei: (e.target as HTMLInputElement).value,
+                      })}
+                    placeholder="Optional IMEI"
+                    class="w-full bg-[#2C2C2E] border border-[#3A3A3C] rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-[11px] font-semibold text-zinc-300 mb-1">
+                    Device Condition
+                  </label>
+                  <input
+                    type="text"
+                    value={intakeForm.condition}
+                    onInput={(e) =>
+                      setIntakeForm({
+                        ...intakeForm,
+                        condition: (e.target as HTMLInputElement).value,
+                      })}
+                    placeholder="e.g. Minor scratches, screen cracked"
+                    class="w-full bg-[#2C2C2E] border border-[#3A3A3C] rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-semibold text-zinc-300 mb-1">
+                    Device Passcode
                   </label>
                   <input
                     type="text"
@@ -2172,6 +2495,36 @@ export default function PosTerminal() {
                     class="w-full bg-[#2C2C2E] border border-[#3A3A3C] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 font-mono"
                   />
                 </div>
+              </div>
+
+              {/* Compliance & Consent Checkboxes */}
+              <div class="space-y-1.5 pt-1">
+                <label class="flex items-center space-x-2 text-[11px] text-zinc-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={intakeForm.termsAccepted}
+                    onChange={(e) =>
+                      setIntakeForm({
+                        ...intakeForm,
+                        termsAccepted: (e.target as HTMLInputElement).checked,
+                      })}
+                    class="rounded border-zinc-700 bg-zinc-800 text-blue-600 focus:ring-0"
+                  />
+                  <span>Customer accepted Workshop Terms &amp; Conditions</span>
+                </label>
+                <label class="flex items-center space-x-2 text-[11px] text-zinc-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={intakeForm.dataWipedConsent}
+                    onChange={(e) =>
+                      setIntakeForm({
+                        ...intakeForm,
+                        dataWipedConsent: (e.target as HTMLInputElement).checked,
+                      })}
+                    class="rounded border-zinc-700 bg-zinc-800 text-blue-600 focus:ring-0"
+                  />
+                  <span>Data wipe and diagnostics consent confirmed</span>
+                </label>
               </div>
 
               <div class="grid grid-cols-2 gap-2 pt-3 border-t border-[#2C2C2E]">

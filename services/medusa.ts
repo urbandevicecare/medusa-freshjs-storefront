@@ -29,6 +29,40 @@ export interface CartItem {
   is_custom?: boolean;
 }
 
+export type RepairStatus =
+  | "pending_dropoff"
+  | "received"
+  | "diagnosing"
+  | "awaiting_approval"
+  | "repairing"
+  | "ready"
+  | "completed"
+  | "collected"
+  | "cancelled"
+  | "refunded";
+
+export type RepairPaymentStatus =
+  | "pending"
+  | "partially_paid"
+  | "authorized"
+  | "captured"
+  | "refunded";
+
+export interface RepairNoteItem {
+  id: string;
+  content: string;
+  is_internal: boolean;
+  created_at: string;
+}
+
+export interface RepairUpdateItem {
+  id: string;
+  message: string;
+  author_type: string;
+  author_id?: string;
+  created_at: string;
+}
+
 export interface RepairTicketRecord {
   id: string;
   ticket_number: string;
@@ -36,33 +70,39 @@ export interface RepairTicketRecord {
   customer_name?: string;
   customer_phone?: string;
   customer_email?: string;
+  technician_id?: string;
+  technician_name?: string;
   device?: {
     id?: string;
     brand: string;
     model_name: string;
     serial_number?: string;
+    imei?: string;
+    condition?: string;
     device_type?: string;
   };
   device_name?: string;
   serial_number?: string;
-  status:
-    | "pending_dropoff"
-    | "received"
-    | "diagnosing"
-    | "awaiting_approval"
-    | "repairing"
-    | "ready"
-    | "completed"
-    | "collected"
-    | "cancelled";
+  status: RepairStatus;
   issue_description: string;
   accessories?: string;
   passcode?: string;
-  parts_estimate?: number;
-  labor_estimate?: number;
-  total_estimate?: number;
+  parts_estimate: number;
+  labor_estimate: number;
+  total_estimate: number;
+  parts_actual?: number;
+  labor_actual?: number;
+  total_actual?: number;
+  amount_paid: number;
+  payment_status?: RepairPaymentStatus;
   deposit_amount?: number;
-  balance_due?: number;
+  balance_due: number;
+  warranty_months?: number;
+  estimated_completion?: string;
+  terms_accepted?: boolean;
+  data_wiped_consent?: boolean;
+  notes?: RepairNoteItem[];
+  updates?: RepairUpdateItem[];
   created_at: string;
 }
 
@@ -135,63 +175,9 @@ export class MedusaPOSService {
     },
   ];
 
-  // Workshop fallback repairs for offline POS operation
-  private mockRepairs: RepairTicketRecord[] = [
-    {
-      id: "rep_10023",
-      ticket_number: "REP-10023",
-      customer_id: "cus_01JOHN_DOE",
-      customer_name: "John Doe",
-      customer_phone: "+254712345678",
-      customer_email: "john.doe@example.com",
-      device: {
-        brand: "Apple",
-        model_name: 'MacBook Pro 16" (M1 Max, A2485)',
-        serial_number: "C02G4120MD6R",
-        device_type: "laptop",
-      },
-      device_name: 'MacBook Pro 16" (M1 Max, A2485)',
-      serial_number: "C02G4120MD6R",
-      status: "ready",
-      issue_description:
-        "Cracked Liquid Retina XDR display panel after accidental drop. Display panel replacement and calibration.",
-      accessories: "Magsafe 3 140W Charger",
-      passcode: "1234",
-      parts_estimate: 24000,
-      labor_estimate: 4500,
-      total_estimate: 28500,
-      deposit_amount: 5000,
-      balance_due: 23500,
-      created_at: "2026-11-18T09:30:00.000Z",
-    },
-    {
-      id: "rep_10024",
-      ticket_number: "REP-10024",
-      customer_id: "cus_02JANE_SMITH",
-      customer_name: "Jane Smith",
-      customer_phone: "+254722998877",
-      customer_email: "jane.smith@urbandevicecare.co.uk",
-      device: {
-        brand: "Apple",
-        model_name: 'MacBook Air M2 13" (A2681)',
-        serial_number: "C02H99120KLM",
-        device_type: "laptop",
-      },
-      device_name: 'MacBook Air M2 13" (A2681)',
-      serial_number: "C02H99120KLM",
-      status: "diagnosing",
-      issue_description:
-        "Coffee spill across keyboard area. Keys sticky, intermittent trackpad click response. Logic board ultrasonic cleaning and diagnostics.",
-      accessories: "Protective sleeve",
-      passcode: "8899",
-      parts_estimate: 6500,
-      labor_estimate: 3500,
-      total_estimate: 10000,
-      deposit_amount: 2000,
-      balance_due: 8000,
-      created_at: "2026-11-19T11:15:00.000Z",
-    },
-  ];
+  // Live workshop repairs store (Zero dummy data: populated dynamically via /admin/repairs)
+  private static repairsStore: RepairTicketRecord[] = [];
+
 
   // Workshop fallback catalog for offline POS operation
   private mockParts: ProductVariant[] = [
@@ -748,7 +734,8 @@ export class MedusaPOSService {
   }
 
   /**
-   * Retrieves repair tickets from remote Medusa v2 repair plugin or local workshop fallback
+   * Retrieves repair tickets from remote Medusa v2 repair plugin or local workshop runtime session
+   * Zero dummy data - returns live tickets from server or empty array if none.
    */
   public async getRepairs(
     authToken?: string,
@@ -771,74 +758,97 @@ export class MedusaPOSService {
 
         const url = new URL(`${this.backendUrl}/admin/repairs`);
         if (st && st !== "all") url.searchParams.set("status", st);
-        url.searchParams.set("limit", "50");
+        url.searchParams.set("limit", "100");
 
         const resp = await fetch(url.toString(), { headers });
         if (resp.ok) {
           const data = await resp.json();
           const list = data.repair_tickets || [];
-          if (Array.isArray(list) && list.length > 0) {
-            const formatted: RepairTicketRecord[] = list.map((t: any) => {
-              const totalEst = t.total_estimate ??
-                ((t.parts_estimate || 0) + (t.labor_estimate || 0));
-              const deposit = t.metadata?.deposit_amount ?? t.deposit_amount ??
-                0;
-              const balDue = Math.max(0, totalEst - deposit);
-              return {
-                id: t.id,
-                ticket_number: t.ticket_number || `REP-${t.id?.slice(-5)}`,
-                customer_id: t.customer_id,
-                customer_name: t.customer?.first_name
-                  ? `${t.customer.first_name} ${t.customer.last_name || ""}`
-                    .trim()
-                  : (t.customer_name || "Workshop Client"),
-                customer_phone: t.customer?.phone || t.customer_phone || "",
-                customer_email: t.customer?.email || t.customer_email || "",
-                device: t.device
-                  ? {
-                    brand: t.device.brand || "Apple",
-                    model_name: t.device.model_name || t.device_name ||
-                      "MacBook",
-                    serial_number: t.device.serial_number || t.serial_number ||
-                      "",
-                    device_type: t.device.device_type || "laptop",
-                  }
-                  : undefined,
-                device_name: t.device?.model_name || t.device_name ||
-                  `${t.device?.brand || "Apple"} Device`,
-                serial_number: t.device?.serial_number || t.serial_number || "",
-                status: t.status || "received",
-                issue_description: t.issue_description || "",
-                accessories: t.accessories || "",
-                passcode: t.metadata?.passcode || t.passcode || "",
-                parts_estimate: t.parts_estimate || 0,
-                labor_estimate: t.labor_estimate || 0,
-                total_estimate: totalEst,
-                deposit_amount: deposit,
-                balance_due: balDue,
-                created_at: t.created_at || new Date().toISOString(),
-              };
-            });
+          const formatted: RepairTicketRecord[] = list.map((t: any) => {
+            const partsEst = Number(t.parts_estimate?.value ?? t.parts_estimate ?? 0);
+            const laborEst = Number(t.labor_estimate?.value ?? t.labor_estimate ?? 0);
+            const totalEst = Number(t.total_estimate?.value ?? t.total_estimate ?? (partsEst + laborEst));
+            const partsAct = Number(t.parts_actual?.value ?? t.parts_actual ?? 0);
+            const laborAct = Number(t.labor_actual?.value ?? t.labor_actual ?? 0);
+            const totalAct = Number(t.total_actual?.value ?? t.total_actual ?? (partsAct + laborAct));
+            const amountPaid = Number(t.amount_paid?.value ?? t.amount_paid ?? t.metadata?.deposit_amount ?? 0);
+            const targetTotal = totalAct > 0 ? totalAct : totalEst;
+            const balDue = Math.max(0, targetTotal - amountPaid);
 
-            if (q) {
-              return formatted.filter((t) =>
-                t.ticket_number.toLowerCase().includes(q) ||
-                (t.customer_name || "").toLowerCase().includes(q) ||
-                (t.device_name || "").toLowerCase().includes(q) ||
-                (t.serial_number || "").toLowerCase().includes(q) ||
-                t.issue_description.toLowerCase().includes(q)
-              );
+            let paymentStatus: RepairPaymentStatus = "pending";
+            if (amountPaid >= targetTotal && (targetTotal > 0 || amountPaid > 0)) {
+              paymentStatus = "captured";
+            } else if (amountPaid > 0) {
+              paymentStatus = "partially_paid";
             }
-            return formatted;
+
+            return {
+              id: t.id,
+              ticket_number: t.ticket_number || `REP-${t.id?.slice(-5)}`,
+              customer_id: t.customer_id,
+              customer_name: t.customer?.first_name
+                ? `${t.customer.first_name} ${t.customer.last_name || ""}`.trim()
+                : (t.customer_name || "Workshop Client"),
+              customer_phone: t.customer?.phone || t.customer_phone || "",
+              customer_email: t.customer?.email || t.customer_email || "",
+              technician_id: t.technician_id || undefined,
+              technician_name: t.technician_name || undefined,
+              device: t.device
+                ? {
+                  id: t.device.id,
+                  brand: t.device.brand || "Apple",
+                  model_name: t.device.model_name || t.device_name || "MacBook",
+                  serial_number: t.device.serial_number || t.serial_number || "",
+                  imei: t.device.imei || undefined,
+                  condition: t.device.condition || undefined,
+                  device_type: t.device.device_type || "laptop",
+                }
+                : undefined,
+              device_name: t.device?.model_name || t.device_name || `${t.device?.brand || "Apple"} Device`,
+              serial_number: t.device?.serial_number || t.serial_number || "",
+              status: (t.status || "received") as RepairStatus,
+              issue_description: t.issue_description || "",
+              accessories: t.accessories || "",
+              passcode: t.metadata?.passcode || t.passcode || "",
+              parts_estimate: partsEst,
+              labor_estimate: laborEst,
+              total_estimate: totalEst,
+              parts_actual: partsAct,
+              labor_actual: laborAct,
+              total_actual: totalAct,
+              amount_paid: amountPaid,
+              payment_status: t.payment_status || paymentStatus,
+              deposit_amount: amountPaid,
+              balance_due: balDue,
+              warranty_months: t.warranty_months ?? 3,
+              estimated_completion: t.estimated_completion || undefined,
+              terms_accepted: t.terms_accepted ?? true,
+              data_wiped_consent: t.data_wiped_consent ?? true,
+              notes: Array.isArray(t.notes) ? t.notes : [],
+              updates: Array.isArray(t.updates) ? t.updates : [],
+              created_at: t.created_at || new Date().toISOString(),
+            };
+          });
+
+          if (q) {
+            return formatted.filter((t) =>
+              t.ticket_number.toLowerCase().includes(q) ||
+              (t.customer_name || "").toLowerCase().includes(q) ||
+              (t.device_name || "").toLowerCase().includes(q) ||
+              (t.serial_number || "").toLowerCase().includes(q) ||
+              (t.technician_name || "").toLowerCase().includes(q) ||
+              t.issue_description.toLowerCase().includes(q)
+            );
           }
+          return formatted;
         }
       } catch {
-        // Fall back to local mock repairs
+        // Fall back to runtime session store
       }
     }
 
-    // 2. Local fallback
-    return this.mockRepairs.filter((t) => {
+    // 2. Runtime session store (zero dummy data)
+    return MedusaPOSService.repairsStore.filter((t) => {
       const matchesStatus = st === "all" || t.status.toLowerCase() === st;
       if (!matchesStatus) return false;
       if (!q) return true;
@@ -847,6 +857,7 @@ export class MedusaPOSService {
         (t.customer_name || "").toLowerCase().includes(q) ||
         (t.device_name || "").toLowerCase().includes(q) ||
         (t.serial_number || "").toLowerCase().includes(q) ||
+        (t.technician_name || "").toLowerCase().includes(q) ||
         t.issue_description.toLowerCase().includes(q)
       );
     });
@@ -864,13 +875,19 @@ export class MedusaPOSService {
     model_name: string;
     device_type?: string;
     serial_number?: string;
+    imei?: string;
+    condition?: string;
     issue_description: string;
     accessories?: string;
     passcode?: string;
+    technician_name?: string;
+    technician_id?: string;
     parts_estimate?: number;
     labor_estimate?: number;
     total_estimate?: number;
     deposit_amount?: number;
+    terms_accepted?: boolean;
+    data_wiped_consent?: boolean;
   }): Promise<RepairTicketRecord> {
     const totalEst = input.total_estimate ??
       ((input.parts_estimate || 0) + (input.labor_estimate || 0));
@@ -893,6 +910,8 @@ export class MedusaPOSService {
             brand: input.brand || "Apple",
             model_name: input.model_name,
             serial_number: input.serial_number || undefined,
+            imei: input.imei || undefined,
+            condition: input.condition || undefined,
             device_type: input.device_type || "laptop",
             customer_id: input.customer_id,
           },
@@ -900,9 +919,14 @@ export class MedusaPOSService {
             customer_id: input.customer_id,
             issue_description: input.issue_description,
             accessories: input.accessories || undefined,
+            technician_name: input.technician_name || undefined,
+            technician_id: input.technician_id || undefined,
             parts_estimate: input.parts_estimate || 0,
             labor_estimate: input.labor_estimate || 0,
             total_estimate: totalEst,
+            amount_paid: deposit,
+            terms_accepted: input.terms_accepted ?? true,
+            data_wiped_consent: input.data_wiped_consent ?? true,
             metadata: {
               deposit_amount: deposit,
               passcode: input.passcode || undefined,
@@ -924,18 +948,20 @@ export class MedusaPOSService {
           const record: RepairTicketRecord = {
             id: t.id || `rep_${Date.now()}`,
             ticket_number: t.ticket_number ||
-              `REP-${
-                t.id?.slice(-5) || Math.floor(10000 + Math.random() * 90000)
-              }`,
+              `REP-${t.id?.slice(-5) || Math.floor(10000 + Math.random() * 90000)}`,
             customer_id: input.customer_id,
             customer_name: input.customer_name || "Workshop Client",
             customer_phone: input.customer_phone || "",
             customer_email: input.customer_email || "",
+            technician_name: input.technician_name,
+            technician_id: input.technician_id,
             device: {
               id: d.id,
               brand: d.brand || input.brand,
               model_name: d.model_name || input.model_name,
               serial_number: d.serial_number || input.serial_number,
+              imei: d.imei || input.imei,
+              condition: d.condition || input.condition,
               device_type: d.device_type || input.device_type || "laptop",
             },
             device_name: `${input.brand} ${input.model_name}`.trim(),
@@ -947,11 +973,16 @@ export class MedusaPOSService {
             parts_estimate: input.parts_estimate || 0,
             labor_estimate: input.labor_estimate || 0,
             total_estimate: totalEst,
+            amount_paid: deposit,
             deposit_amount: deposit,
             balance_due: balanceDue,
+            payment_status: deposit >= totalEst && totalEst > 0 ? "captured" : deposit > 0 ? "partially_paid" : "pending",
+            warranty_months: t.warranty_months ?? 3,
+            terms_accepted: input.terms_accepted ?? true,
+            data_wiped_consent: input.data_wiped_consent ?? true,
             created_at: t.created_at || new Date().toISOString(),
           };
-          this.mockRepairs.unshift(record);
+          MedusaPOSService.repairsStore.unshift(record);
           return record;
         }
       } catch {
@@ -968,10 +999,14 @@ export class MedusaPOSService {
       customer_name: input.customer_name || "Workshop Client",
       customer_phone: input.customer_phone || "",
       customer_email: input.customer_email || "",
+      technician_name: input.technician_name,
+      technician_id: input.technician_id,
       device: {
         brand: input.brand || "Apple",
         model_name: input.model_name,
         serial_number: input.serial_number || "",
+        imei: input.imei,
+        condition: input.condition,
         device_type: input.device_type || "laptop",
       },
       device_name: `${input.brand} ${input.model_name}`.trim(),
@@ -983,11 +1018,88 @@ export class MedusaPOSService {
       parts_estimate: input.parts_estimate || 0,
       labor_estimate: input.labor_estimate || 0,
       total_estimate: totalEst,
+      amount_paid: deposit,
       deposit_amount: deposit,
       balance_due: balanceDue,
+      payment_status: deposit >= totalEst && totalEst > 0 ? "captured" : deposit > 0 ? "partially_paid" : "pending",
+      warranty_months: 3,
+      terms_accepted: input.terms_accepted ?? true,
+      data_wiped_consent: input.data_wiped_consent ?? true,
       created_at: new Date().toISOString(),
     };
-    this.mockRepairs.unshift(newRecord);
+    MedusaPOSService.repairsStore.unshift(newRecord);
     return newRecord;
+  }
+
+  /**
+   * Updates repair status matching Medusa repair plugin POST /admin/repairs/:id/status
+   */
+  public async updateRepairStatus(
+    authToken: string | undefined,
+    ticketId: string,
+    status: RepairStatus,
+    note?: string,
+  ): Promise<boolean> {
+    if (this.backendUrl && (authToken || this.publishableKey)) {
+      try {
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
+        if (this.publishableKey) headers["x-publishable-api-key"] = this.publishableKey;
+
+        const resp = await fetch(`${this.backendUrl}/admin/repairs/${ticketId}/status`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ status, note }),
+        });
+        if (resp.ok) return true;
+      } catch {
+        // Fall back to local
+      }
+    }
+    const local = MedusaPOSService.repairsStore.find((r) => r.id === ticketId || r.ticket_number === ticketId);
+    if (local) {
+      local.status = status;
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Adds note to repair ticket matching Medusa repair plugin POST /admin/repairs/:id/notes
+   */
+  public async addRepairNote(
+    authToken: string | undefined,
+    ticketId: string,
+    content: string,
+    isInternal: boolean = false,
+  ): Promise<boolean> {
+    if (this.backendUrl && (authToken || this.publishableKey)) {
+      try {
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
+        if (this.publishableKey) headers["x-publishable-api-key"] = this.publishableKey;
+
+        const resp = await fetch(`${this.backendUrl}/admin/repairs/${ticketId}/notes`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ content, is_internal: isInternal }),
+        });
+        if (resp.ok) return true;
+      } catch {
+        // Fall back to local
+      }
+    }
+    const local = MedusaPOSService.repairsStore.find((r) => r.id === ticketId || r.ticket_number === ticketId);
+    if (local) {
+      if (!local.notes) local.notes = [];
+      local.notes.push({
+        id: `note_${Date.now()}`,
+        content,
+        is_internal: isInternal,
+        created_at: new Date().toISOString(),
+      });
+      return true;
+    }
+    return false;
   }
 }
