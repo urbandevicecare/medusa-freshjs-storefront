@@ -10,6 +10,7 @@ import { handler as posCheckoutHandler } from "../routes/api/pos/checkout.ts";
 import { handler as posCustomersHandler } from "../routes/api/pos/customers.ts";
 import { handler as posAuthHandler } from "../routes/api/pos/auth.ts";
 import { handler as posRepairsHandler } from "../routes/api/pos/repairs.ts";
+import { handler as posProductsHandler } from "../routes/api/pos/products.ts";
 
 const service = new MedusaPOSService();
 
@@ -209,4 +210,17 @@ Deno.test("POS API - /api/pos/repairs endpoint (Workshop Intake & List)", async 
   const getRes2 = await posRepairsHandler(getReq2);
   const getData2 = await getRes2.json();
   assertEquals(getData2.repairs.length >= 1, true);
+});
+
+Deno.test("POS API - /api/pos/products endpoint (live suggestions & infinite scroll pagination)", async () => {
+  const req = new Request(
+    "http://localhost:8000/api/pos/products?q=MacBook&limit=5&fallback=true",
+  );
+  const res = await posProductsHandler(req);
+  assertEquals(res.status, 200);
+  assertEquals(res.headers.get("content-type"), "application/json");
+  const data = await res.json();
+  assertExists(data.products);
+  assertEquals(typeof data.count, "number");
+  assertEquals(typeof data.has_more, "boolean");
 });

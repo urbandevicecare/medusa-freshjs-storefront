@@ -371,42 +371,6 @@ export class MedusaPOSService {
   }
 
   /**
-   * Fetches the active catalog from Medusa v2 Storefront API with fallback to local workshop catalog
-   */
-  public async getCatalog(): Promise<ProductVariant[]> {
-    try {
-      if (this.medusaClient?.store?.product) {
-        const { products } = await this.medusaClient.store.product.list({
-          limit: 50,
-        });
-        if (products && products.length > 0) {
-          const liveVariants: ProductVariant[] = [];
-          for (const p of products) {
-            for (const v of (p.variants || [])) {
-              liveVariants.push({
-                id: v.id,
-                title: `${p.title} (${v.title})`,
-                product_title: p.title,
-                sku: v.sku || undefined,
-                barcode: v.barcode || undefined,
-                price: v.calculated_price?.calculated_amount ??
-                  (v.prices?.[0]?.amount || 0),
-                inventory_quantity: v.inventory_quantity ?? 10,
-              });
-            }
-          }
-          if (liveVariants.length > 0) {
-            return liveVariants;
-          }
-        }
-      }
-    } catch (_err) {
-      // Gracefully fall back to local offline catalog
-    }
-    return this.mockParts;
-  }
-
-  /**
    * Resolves barcodes, SKUs, ticket numbers, or serial numbers
    */
   public async resolveScan(code: string): Promise<ScanResult> {
@@ -460,7 +424,10 @@ export class MedusaPOSService {
               if (
                 v.sku?.toUpperCase() === trimmed.toUpperCase() ||
                 v.barcode === trimmed ||
-                v.id === trimmed
+                v.id === trimmed ||
+                p.title.toLowerCase().includes(trimmed.toLowerCase()) ||
+                (v.title &&
+                  v.title.toLowerCase().includes(trimmed.toLowerCase()))
               ) {
                 return {
                   type: "part",
@@ -497,6 +464,158 @@ export class MedusaPOSService {
     }
 
     return { type: "unknown" };
+  }
+
+  /**
+   * Retrieves parts & services catalog with live Medusa query,
+   * keyword filtering (by title/sku/barcode), and offset pagination for infinite scrolling.
+   */
+  public async getCatalog(options?: {
+    q?: string;
+    limit?: number;
+    offset?: number;
+    authToken?: string;
+    includeFallback?: boolean;
+  }): Promise<{
+    products: ProductVariant[];
+    count: number;
+    offset: number;
+    limit: number;
+    has_more: boolean;
+  }> {
+    const q = (options?.q || "").trim().toLowerCase();
+    const limit = Math.max(1, Math.min(100, options?.limit ?? 20));
+    const offset = Math.max(0, options?.offset ?? 0);
+    const authToken = options?.authToken;
+    const includeFallback = options?.includeFallback ?? false;
+
+    const allParts: ProductVariant[] = [];
+    const seenIds = new Set<string>();
+
+    // 1. Try querying /admin/parts from Medusa repair plugin if authToken is present
+    if (authToken || this.backendUrl) {
+      try {
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        if (authToken) {
+          headers["Authorization"] = `Bearer ${authToken}`;
+        }
+        if (this.publishableKey) {
+          headers["x-publishable-api-key"] = this.publishableKey;
+        }
+        const resp = await fetch(
+          `${this.backendUrl}/admin/parts?limit=100&offset=0${
+            q ? `&q=${encodeURIComponent(q)}` : ""
+          }`,
+          { headers },
+        );
+        if (resp.ok) {
+          const cType = resp.headers.get("content-type") || "";
+          if (cType.includes("application/json")) {
+            const data = await resp.json();
+            const rawParts = data.parts || data.data || [];
+            for (const item of rawParts) {
+              if (item.id && !seenIds.has(item.id)) {
+                seenIds.add(item.id);
+                allParts.push({
+                  id: item.id,
+                  title: item.title
+                    ? (item.product_title &&
+                        !item.title.includes(item.product_title)
+                      ? `${item.product_title} - ${item.title}`
+                      : item.title)
+                    : (item.product_title || "Part"),
+                  product_title: item.product_title,
+                  sku: item.sku || undefined,
+                  barcode: item.barcode || item.ean || item.upc || undefined,
+                  price: typeof item.price === "number" ? item.price : 0,
+                  inventory_quantity: item.inventory_quantity ?? 10,
+                });
+              }
+            }
+          }
+        }
+      } catch {
+        // Fall through to store products
+      }
+    }
+
+    // 2. Query Medusa Storefront API products
+    try {
+      if (this.medusaClient?.store?.product) {
+        const queryParams: Record<string, any> = {
+          limit: 100,
+          offset: 0,
+          fields:
+            "*variants,*variants.options,*options,*options.values,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder",
+        };
+        if (q) queryParams.q = q;
+
+        const { products } = await this.medusaClient.store.product.list(
+          queryParams,
+        );
+        if (products && products.length > 0) {
+          for (const prod of products) {
+            for (const v of (prod.variants || [])) {
+              if (v.id && !seenIds.has(v.id)) {
+                seenIds.add(v.id);
+                const price = v.calculated_price?.calculated_amount ??
+                  (v.prices?.[0]?.amount || 0);
+                const title = v.title && v.title !== "Default Variant"
+                  ? `${prod.title} (${v.title})`
+                  : prod.title;
+                allParts.push({
+                  id: v.id,
+                  title,
+                  product_title: prod.title,
+                  sku: v.sku || undefined,
+                  barcode: v.barcode || v.ean || v.upc || undefined,
+                  price,
+                  inventory_quantity: v.inventory_quantity ?? 10,
+                });
+              }
+            }
+          }
+        }
+      }
+    } catch {
+      // Fall through to mock parts if fallback requested
+    }
+
+    // 3. Fallback only if requested (e.g. for offline testing) and no live items found
+    if (allParts.length === 0 && includeFallback) {
+      for (const item of this.mockParts) {
+        if (!seenIds.has(item.id)) {
+          seenIds.add(item.id);
+          allParts.push({ ...item });
+        }
+      }
+    }
+
+    // Filter by query 'q' if query exists
+    let filtered = allParts;
+    if (q) {
+      filtered = allParts.filter((item) => {
+        const titleMatch = item.title.toLowerCase().includes(q);
+        const prodMatch = (item.product_title || "").toLowerCase().includes(q);
+        const skuMatch = (item.sku || "").toLowerCase().includes(q);
+        const barcodeMatch = (item.barcode || "").toLowerCase().includes(q);
+        return titleMatch || prodMatch || skuMatch || barcodeMatch;
+      });
+    }
+
+    const totalCount = filtered.length;
+    const paginated = filtered.slice(offset, offset + limit);
+    const hasMore = offset + limit < totalCount;
+
+    return {
+      products: paginated,
+      count: totalCount,
+      offset,
+      limit,
+      has_more: hasMore,
+    };
   }
 
   /**

@@ -31,9 +31,11 @@ import {
 interface ProductPart {
   id: string;
   title: string;
+  product_title?: string;
   sku?: string;
   barcode?: string;
   price: number;
+  inventory_quantity?: number;
   isCustom?: boolean;
 }
 
@@ -142,44 +144,19 @@ export default function PosTerminal() {
   // Terminal Channel
   const [channel] = useState("web_counter_01");
 
-  // Catalog state
-  const [catalog, setCatalog] = useState<ProductPart[]>([
-    {
-      id: "var_kb_a2681",
-      title: 'MacBook Air M2 13" (A2681) Keyboard',
-      sku: "NP04011448",
-      barcode: "NP04011448",
-      price: 6500,
-    },
-    {
-      id: "var_bat_a2442",
-      title: 'MacBook Pro 14" (A2442) Battery OEM',
-      sku: "NP04019921",
-      barcode: "NP04019921",
-      price: 12000,
-    },
-    {
-      id: "var_screen_a2338",
-      title: "MacBook Pro M1 (A2338) Retina Display",
-      sku: "NP04023381",
-      barcode: "0793573199210",
-      price: 28500,
-    },
-    {
-      id: "var_chg_67w",
-      title: "Apple 67W USB-C Power Adapter",
-      sku: "ACC-CHG-67W",
-      barcode: "194252432822",
-      price: 4500,
-    },
-    {
-      id: "var_diag",
-      title: "Workshop Diagnostic Service",
-      sku: "SRV-DIAG-01",
-      barcode: "SRV-DIAG-01",
-      price: 2000,
-    },
-  ]);
+  // Catalog state (Live Medusa v2 Sync, zero dummy data, infinite scroll)
+  const [catalog, setCatalog] = useState<ProductPart[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogOffset, setCatalogOffset] = useState(0);
+  const [catalogHasMore, setCatalogHasMore] = useState(true);
+
+  // Live item suggestions while typing
+  const [suggestions, setSuggestions] = useState<ProductPart[]>([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
+  const suggestionsRef = useRef<HTMLDivElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   // Cart & checkout state
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -299,12 +276,111 @@ export default function PosTerminal() {
     }
   }, []);
 
+  // Initial catalog load when admin is active
+  useEffect(() => {
+    if (activeAdmin) {
+      fetchCatalog(true);
+    }
+  }, [activeAdmin]);
+
   // Fetch repairs when switching to workshop tab or when admin logs in
   useEffect(() => {
     if (activeAdmin && activeTab === "workshop") {
       loadRepairs();
     }
   }, [activeAdmin, activeTab, repairStatusFilter]);
+
+  const fetchCatalog = async (reset: boolean = false) => {
+    if (catalogLoading && !reset) return;
+    const targetOffset = reset ? 0 : catalogOffset;
+    setCatalogLoading(true);
+
+    try {
+      const headers: Record<string, string> = {};
+      if (adminToken) headers["Authorization"] = `Bearer ${adminToken}`;
+      const url = `/api/pos/products?limit=20&offset=${targetOffset}`;
+      let res = await fetch(url, { headers });
+      if (!res.ok) {
+        res = await fetch(
+          `/api/products?limit=20&page=${Math.floor(targetOffset / 20) + 1}`,
+        );
+      }
+
+      if (res.ok) {
+        const data = await res.json();
+        const newProducts: ProductPart[] = data.products || [];
+        if (reset) {
+          setCatalog(newProducts);
+          setCatalogOffset(newProducts.length);
+        } else {
+          setCatalog((prev) => {
+            const existingIds = new Set(prev.map((p) => p.id));
+            const unique = newProducts.filter((p) => !existingIds.has(p.id));
+            return [...prev, ...unique];
+          });
+          setCatalogOffset((prev) => prev + newProducts.length);
+        }
+        setCatalogHasMore(data.has_more ?? (newProducts.length >= 20));
+      }
+    } catch {
+      // Graceful fallback
+    } finally {
+      setCatalogLoading(false);
+    }
+  };
+
+  // Debounced live suggestions when typing in search / lookup
+  useEffect(() => {
+    const term = scanInput.trim();
+    if (term.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      setSelectedSuggestionIndex(-1);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setSuggestionsLoading(true);
+      try {
+        const headers: Record<string, string> = {};
+        if (adminToken) headers["Authorization"] = `Bearer ${adminToken}`;
+        const res = await fetch(
+          `/api/pos/products?q=${encodeURIComponent(term)}&limit=8`,
+          { headers },
+        );
+        if (res.ok) {
+          const data = await res.json();
+          const items: ProductPart[] = data.products || [];
+          setSuggestions(items);
+          setShowSuggestions(items.length > 0);
+          setSelectedSuggestionIndex(-1);
+        }
+      } catch {
+        setSuggestions([]);
+      } finally {
+        setSuggestionsLoading(false);
+      }
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [scanInput, adminToken]);
+
+  // Click outside suggestions dropdown listener
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(e.target as Node) &&
+        searchInputRef.current &&
+        !searchInputRef.current.contains(e.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+    globalThis.addEventListener("mousedown", handleClickOutside);
+    return () =>
+      globalThis.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const loadRepairs = async () => {
     setRepairsLoading(true);
@@ -345,8 +421,20 @@ export default function PosTerminal() {
           (e.target as HTMLElement).id === "manual-scan-input"
         ) {
           e.preventDefault();
-          handleScanCode(scanInput);
-          setScanInput("");
+          if (
+            showSuggestions && selectedSuggestionIndex >= 0 &&
+            suggestions[selectedSuggestionIndex]
+          ) {
+            const chosen = suggestions[selectedSuggestionIndex];
+            addToCart(chosen);
+            setStatusNotice(`✔ Added ${chosen.title}`);
+            setScanInput("");
+            setShowSuggestions(false);
+          } else {
+            handleScanCode(scanInput);
+            setScanInput("");
+            setShowSuggestions(false);
+          }
         }
         return;
       }
@@ -371,7 +459,14 @@ export default function PosTerminal() {
 
     globalThis.addEventListener("keydown", handleKeyDown);
     return () => globalThis.removeEventListener("keydown", handleKeyDown);
-  }, [activeAdmin, scanInput, cart]);
+  }, [
+    activeAdmin,
+    scanInput,
+    cart,
+    showSuggestions,
+    selectedSuggestionIndex,
+    suggestions,
+  ]);
 
   // Login handler
   const handleLoginSubmit = async (e?: Event) => {
@@ -1206,8 +1301,16 @@ export default function PosTerminal() {
       <div class="min-h-screen bg-[#121214] text-white font-sans flex flex-col justify-center items-center p-4 select-none">
         <div class="bg-[#1C1C1E] border border-[#2C2C2E] rounded-2xl p-8 max-w-md w-full shadow-2xl">
           <div class="text-center mb-6">
-            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 mx-auto flex items-center justify-center font-bold text-xl text-white shadow-lg mb-3">
-              UD
+            <div class="flex items-center justify-center mb-4">
+              <img
+                src="/pos-logo.png"
+                alt="Urban Device Care POS"
+                class="h-16 w-auto max-w-[200px] object-contain drop-shadow"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src =
+                    "https://i.postimg.cc/q7qsbfm1/Gemini-Generated-Image-i28plli28plli28p-removebg-preview.png";
+                }}
+              />
             </div>
             <h1 class="text-lg font-bold tracking-tight text-white">
               Urban Device Care • Web POS
@@ -1288,8 +1391,16 @@ export default function PosTerminal() {
       {/* Top Header */}
       <header class="flex flex-wrap items-center justify-between bg-[#1C1C1E] border border-[#2C2C2E] rounded-xl p-3 mb-3 shadow">
         <div class="flex items-center space-x-3">
-          <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center font-bold text-white shadow-sm">
-            UD
+          <div class="flex items-center">
+            <img
+              src="/pos-logo.png"
+              alt="Urban Device Care POS"
+              class="h-9 w-auto max-w-[120px] object-contain"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src =
+                  "https://i.postimg.cc/q7qsbfm1/Gemini-Generated-Image-i28plli28plli28p-removebg-preview.png";
+              }}
+            />
           </div>
           <div>
             <div class="flex items-center space-x-2">
@@ -1565,24 +1676,125 @@ export default function PosTerminal() {
       {/* ==================================================== */}
       {activeTab === "counter" && (
         <div class="flex-1 flex flex-col">
-          {/* Barcode Search & Custom Item Button */}
+          {/* Barcode Search, Live Name/Title Suggestions & Custom Item Button */}
           <div class="flex items-center space-x-2 mb-4">
             <div class="relative flex-1">
               <Barcode class="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
               <input
+                ref={searchInputRef}
                 id="manual-scan-input"
                 type="text"
                 value={scanInput}
                 onInput={(e) =>
                   setScanInput((e.target as HTMLInputElement).value)}
-                placeholder="Scan barcode gun or enter SKU (e.g. NP04011448, REP-10023, C02G4120MD6R)..."
-                class="w-full bg-[#1C1C1E] border border-[#2C2C2E] rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition"
+                onFocus={() => {
+                  if (suggestions.length > 0) setShowSuggestions(true);
+                }}
+                onKeyDown={(e) => {
+                  if (showSuggestions && suggestions.length > 0) {
+                    if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      setSelectedSuggestionIndex((prev) =>
+                        prev < suggestions.length - 1 ? prev + 1 : 0
+                      );
+                    } else if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      setSelectedSuggestionIndex((prev) =>
+                        prev > 0 ? prev - 1 : suggestions.length - 1
+                      );
+                    } else if (e.key === "Escape") {
+                      setShowSuggestions(false);
+                    }
+                  }
+                }}
+                placeholder="Scan barcode or type item title / SKU / service name..."
+                class="w-full bg-[#1C1C1E] border border-[#2C2C2E] rounded-lg pl-9 pr-8 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition"
               />
+              {scanInput && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScanInput("");
+                    setShowSuggestions(false);
+                  }}
+                  class="absolute right-2.5 top-2.5 text-zinc-500 hover:text-zinc-300"
+                  title="Clear input"
+                >
+                  <X class="w-3.5 h-3.5" />
+                </button>
+              )}
+
+              {/* Floating Live Suggestions Dropdown */}
+              {showSuggestions && (
+                <div
+                  ref={suggestionsRef}
+                  class="absolute left-0 right-0 top-full mt-1.5 bg-[#1C1C1E] border border-zinc-700/80 rounded-xl shadow-2xl z-50 max-h-80 overflow-y-auto divide-y divide-zinc-800/80"
+                >
+                  {suggestionsLoading && suggestions.length === 0
+                    ? (
+                      <div class="p-3 text-center text-xs text-zinc-400 flex items-center justify-center gap-2">
+                        <RefreshCw class="w-3.5 h-3.5 animate-spin text-blue-400" />
+                        <span>Searching catalog...</span>
+                      </div>
+                    )
+                    : (
+                      suggestions.map((item, idx) => (
+                        <div
+                          key={item.id}
+                          onClick={() => {
+                            addToCart(item);
+                            setStatusNotice(`✔ Added ${item.title}`);
+                            setScanInput("");
+                            setShowSuggestions(false);
+                          }}
+                          class={`p-2.5 cursor-pointer flex items-center justify-between transition ${
+                            idx === selectedSuggestionIndex
+                              ? "bg-blue-600/20 text-white"
+                              : "hover:bg-zinc-800/80 text-zinc-200"
+                          }`}
+                        >
+                          <div class="flex-1 min-w-0 pr-3">
+                            <p class="text-xs font-medium text-white truncate">
+                              {item.title}
+                            </p>
+                            <div class="flex items-center gap-2 mt-0.5 text-[10px] text-zinc-400 font-mono">
+                              {item.sku && <span>SKU: {item.sku}</span>}
+                              {item.barcode && (
+                                <span>• Barcode: {item.barcode}</span>
+                              )}
+                              {typeof item.inventory_quantity === "number" && (
+                                <span
+                                  class={item.inventory_quantity > 0
+                                    ? "text-emerald-400"
+                                    : "text-amber-400"}
+                                >
+                                  • {item.inventory_quantity > 0
+                                    ? `${item.inventory_quantity} in stock`
+                                    : "Out of stock"}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div class="text-right shrink-0">
+                            <span class="text-xs font-bold text-blue-400">
+                              KES {item.price.toFixed(2)}
+                            </span>
+                            <div class="text-[10px] text-emerald-400 flex items-center justify-end gap-0.5">
+                              <Plus class="w-3 h-3" />
+                              <span>Add</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                </div>
+              )}
             </div>
             <button
               onClick={() => {
                 handleScanCode(scanInput);
                 setScanInput("");
+                setShowSuggestions(false);
               }}
               class="inline-flex items-center space-x-1 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold transition active:scale-95 shadow"
             >
@@ -1590,7 +1802,8 @@ export default function PosTerminal() {
               <span>Lookup</span>
             </button>
             <button
-              onClick={() => setShowCustomItemModal(true)}
+              onClick={() =>
+                setShowCustomItemModal(true)}
               class="inline-flex items-center space-x-1 px-3 py-2 bg-amber-600/30 hover:bg-amber-600/40 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-semibold transition active:scale-95 shadow"
               title="Add non-registered or custom item to cart"
             >
@@ -1601,43 +1814,110 @@ export default function PosTerminal() {
 
           {/* 2-Column Register Grid */}
           <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Left: Catalog */}
+            {/* Left: Catalog with Infinite Scroll */}
             <section class="bg-[#1C1C1E] border border-[#2C2C2E] rounded-xl p-3 flex flex-col">
               <div class="flex items-center justify-between mb-2">
-                <h2 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">
-                  Parts &amp; Services Catalog
-                </h2>
-                <span class="text-[10px] text-zinc-500">
-                  Live Medusa v2 Sync
-                </span>
+                <div class="flex items-center gap-2">
+                  <h2 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">
+                    Parts &amp; Services Catalog
+                  </h2>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 font-mono">
+                    {catalog.length} items
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => fetchCatalog(true)}
+                  disabled={catalogLoading}
+                  class="text-[10px] text-zinc-400 hover:text-white flex items-center gap-1 transition disabled:opacity-50"
+                  title="Refresh catalog from Medusa"
+                >
+                  <RefreshCw
+                    class={`w-3 h-3 ${
+                      catalogLoading ? "animate-spin text-blue-400" : ""
+                    }`}
+                  />
+                  <span>Sync</span>
+                </button>
               </div>
-              <div class="flex-1 overflow-y-auto space-y-2 pr-1 max-h-[500px]">
-                {catalog.map((part) => (
-                  <div
-                    key={part.id}
-                    onClick={() => addToCart(part)}
-                    class="bg-[#2C2C2E] hover:bg-zinc-700/60 p-2.5 rounded-lg border border-[#3A3A3C] flex items-center justify-between cursor-pointer transition active:scale-[0.99] group"
-                  >
-                    <div>
-                      <p class="text-xs font-medium text-zinc-100 group-hover:text-white">
-                        {part.title}
+
+              <div
+                onScroll={(e) => {
+                  const target = e.currentTarget;
+                  if (
+                    target.scrollHeight - target.scrollTop -
+                          target.clientHeight < 80 &&
+                    !catalogLoading &&
+                    catalogHasMore
+                  ) {
+                    fetchCatalog(false);
+                  }
+                }}
+                class="flex-1 overflow-y-auto space-y-2 pr-1 max-h-[500px]"
+              >
+                {catalog.length === 0 && !catalogLoading
+                  ? (
+                    <div class="py-12 text-center text-zinc-500">
+                      <Tag class="w-8 h-8 mx-auto mb-2 opacity-40" />
+                      <p class="text-xs font-medium text-zinc-400">
+                        No catalog items available
                       </p>
-                      <p class="text-[10px] text-zinc-400 font-mono">
-                        SKU: {part.sku || "N/A"} • Barcode:{" "}
-                        {part.barcode || "N/A"}
+                      <p class="text-[10px] text-zinc-500 mt-1">
+                        Add products in Medusa Admin or use the Custom Item
+                        button above
                       </p>
                     </div>
-                    <div class="text-right">
-                      <span class="text-xs font-bold text-blue-400">
-                        KES {part.price.toFixed(2)}
-                      </span>
-                      <div class="text-[10px] text-zinc-400 flex items-center justify-end space-x-0.5">
-                        <Plus class="w-3 h-3 text-zinc-400" />
-                        <span>Add</span>
+                  )
+                  : (
+                    catalog.map((part) => (
+                      <div
+                        key={part.id}
+                        onClick={() => addToCart(part)}
+                        class="bg-[#2C2C2E] hover:bg-zinc-700/60 p-2.5 rounded-lg border border-[#3A3A3C] flex items-center justify-between cursor-pointer transition active:scale-[0.99] group"
+                      >
+                        <div class="flex-1 min-w-0 pr-2">
+                          <p class="text-xs font-medium text-zinc-100 group-hover:text-white truncate">
+                            {part.title}
+                          </p>
+                          <p class="text-[10px] text-zinc-400 font-mono">
+                            SKU: {part.sku || "N/A"} • Barcode:{" "}
+                            {part.barcode || "N/A"}
+                            {typeof part.inventory_quantity === "number" && (
+                              <span
+                                class={part.inventory_quantity > 0
+                                  ? " text-emerald-400 ml-1.5"
+                                  : " text-amber-400 ml-1.5"}
+                              >
+                                ({part.inventory_quantity} in stock)
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                        <div class="text-right shrink-0">
+                          <span class="text-xs font-bold text-blue-400">
+                            KES {part.price.toFixed(2)}
+                          </span>
+                          <div class="text-[10px] text-zinc-400 flex items-center justify-end space-x-0.5 group-hover:text-emerald-400">
+                            <Plus class="w-3 h-3 text-zinc-400 group-hover:text-emerald-400" />
+                            <span>Add</span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    ))
+                  )}
+
+                {catalogLoading && (
+                  <div class="py-3 text-center text-xs text-zinc-400 flex items-center justify-center gap-2">
+                    <RefreshCw class="w-3.5 h-3.5 animate-spin text-blue-400" />
+                    <span>Loading items...</span>
                   </div>
-                ))}
+                )}
+
+                {!catalogHasMore && catalog.length > 0 && (
+                  <div class="py-2 text-center text-[10px] text-zinc-500">
+                    End of catalog ({catalog.length} items loaded)
+                  </div>
+                )}
               </div>
             </section>
 
