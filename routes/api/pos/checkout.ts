@@ -12,8 +12,11 @@ export async function handler(ctxOrReq: any): Promise<Response> {
       });
     }
 
+    const authHeader = req.headers.get("Authorization") || "";
+    const token = authHeader.replace(/^Bearer\s+/i, "").trim() || undefined;
+
     const body = await req.json();
-    const order = await service.createPosOrder(body);
+    const order = await service.createPosOrder(body, token);
 
     return new Response(JSON.stringify({ success: true, ...order, order }), {
       headers: { "Content-Type": "application/json" },

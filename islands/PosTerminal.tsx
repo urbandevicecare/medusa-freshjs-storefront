@@ -37,12 +37,18 @@ interface ProductPart {
   price: number;
   inventory_quantity?: number;
   isCustom?: boolean;
+  originalPrice?: number;
+  appliedPriceList?: string;
+  discountPct?: number;
 }
 
 interface CartItem {
   id: string;
   part: ProductPart;
   quantity: number;
+  originalPrice?: number;
+  appliedPriceList?: string;
+  discountPct?: number;
 }
 
 export interface AdminUser {
@@ -53,6 +59,22 @@ export interface AdminUser {
   role?: string;
 }
 
+export interface PriceListRule {
+  id: string;
+  title: string;
+  type?: string;
+  status?: string;
+  rules?: Record<string, string[]>;
+  prices?: Array<{
+    id: string;
+    amount: number;
+    currency_code?: string;
+    variant_id?: string;
+    min_quantity?: number;
+    max_quantity?: number;
+  }>;
+}
+
 export interface POSCustomer {
   id: string;
   first_name: string;
@@ -61,6 +83,9 @@ export interface POSCustomer {
   phone?: string;
   company_name?: string;
   has_account?: boolean;
+  groups?: Array<{ id: string; name: string }>;
+  pricing_tier?: string;
+  discount_rate?: number;
   metadata?: Record<string, unknown>;
 }
 
@@ -169,6 +194,21 @@ export default function PosTerminal() {
   );
   const [lastOrderNum, setLastOrderNum] = useState<string | null>(null);
 
+  // Price Lists state
+  const [priceLists, setPriceLists] = useState<PriceListRule[]>([]);
+
+  // M-Pesa STK Push state
+  const [showStkModal, setShowStkModal] = useState(false);
+  const [stkPhone, setStkPhone] = useState("");
+  const [stkStep, setStkStep] = useState<
+    "input" | "pushing" | "waiting" | "success" | "failed"
+  >("input");
+  const [stkReference, setStkReference] = useState("");
+  const [stkNotice, setStkNotice] = useState("");
+  const [stkCountdown, setStkCountdown] = useState(60);
+  const [stkTicketId, setStkTicketId] = useState<string | null>(null);
+  const [stkAmount, setStkAmount] = useState(0);
+
   // Customer state & Quick Customer pipeline
   const [selectedCustomer, setSelectedCustomer] = useState<POSCustomer | null>(
     null,
@@ -184,6 +224,9 @@ export default function PosTerminal() {
       phone: "+254712345678",
       company_name: "Nairobi Tech Ltd",
       has_account: true,
+      groups: [{ id: "grp_vip", name: "VIP" }],
+      pricing_tier: "VIP",
+      discount_rate: 10,
     },
     {
       id: "cus_02JANE_SMITH",
@@ -193,6 +236,9 @@ export default function PosTerminal() {
       phone: "+254722998877",
       company_name: "Urban Studios",
       has_account: true,
+      groups: [{ id: "grp_wholesale", name: "Wholesale" }],
+      pricing_tier: "Wholesale",
+      discount_rate: 20,
     },
   ]);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
@@ -278,12 +324,178 @@ export default function PosTerminal() {
     }
   }, []);
 
-  // Initial catalog load when admin is active
+  // Initial catalog & price lists load when admin is active
   useEffect(() => {
     if (activeAdmin) {
       fetchCatalog(true);
+      loadPriceLists();
     }
   }, [activeAdmin]);
+
+  const loadPriceLists = async () => {
+    try {
+      const headers: Record<string, string> = {};
+      if (adminToken) headers["Authorization"] = `Bearer ${adminToken}`;
+      const res = await fetch("/api/pos/price-lists", { headers });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.price_lists && Array.isArray(data.price_lists)) {
+          setPriceLists(data.price_lists);
+        }
+      }
+    } catch {
+      // offline fallback
+    }
+  };
+
+  const computePriceForCustomer = (
+    variantId: string,
+    basePrice: number,
+    customer?: POSCustomer | null,
+  ): {
+    unitPrice: number;
+    originalPrice: number;
+    priceListName?: string;
+    discountPct?: number;
+  } => {
+    const originalPrice = basePrice;
+    if (!customer) {
+      return { unitPrice: originalPrice, originalPrice };
+    }
+
+    // 1. Check Medusa Price Lists
+    if (priceLists && priceLists.length > 0) {
+      const customerGroupIds = (customer.groups || []).map((g) => g.id);
+      for (const pl of priceLists) {
+        if (pl.status && pl.status !== "active") continue;
+        const matchesGroup = pl.rules?.customer_group_id?.some((gid) =>
+          customerGroupIds.includes(gid)
+        );
+        const matchesCustomer = pl.rules?.customer_id?.includes(customer.id) ||
+          customer.metadata?.price_list_id === pl.id;
+
+        if (matchesGroup || matchesCustomer) {
+          const entry = pl.prices?.find((p) => p.variant_id === variantId);
+          if (entry && entry.amount > 0) {
+            return {
+              unitPrice: entry.amount,
+              originalPrice,
+              priceListName: pl.title,
+              discountPct: originalPrice > 0
+                ? Math.round((1 - entry.amount / originalPrice) * 100)
+                : 0,
+            };
+          }
+        }
+      }
+    }
+
+    // 2. Check Customer Groups by name (Wholesale / VIP / B2B)
+    const groupNames = (customer.groups || []).map((g) => g.name.toLowerCase());
+    let discountPct = 0;
+    let tierTitle: string | undefined;
+
+    if (groupNames.some((n) => n.includes("wholesale") || n.includes("b2b"))) {
+      discountPct = 20;
+      tierTitle = "Wholesale (20% Off)";
+    } else if (
+      groupNames.some((n) => n.includes("vip") || n.includes("premium"))
+    ) {
+      discountPct = 10;
+      tierTitle = "VIP (10% Off)";
+    } else if (
+      groupNames.some((n) => n.includes("corporate") || n.includes("trade"))
+    ) {
+      discountPct = 15;
+      tierTitle = "Corporate (15% Off)";
+    }
+
+    // 3. Customer metadata discount rate / tier
+    const customRate = Number(
+      customer.discount_rate ??
+        customer.metadata?.discount_rate ??
+        customer.metadata?.discount_percentage ??
+        0,
+    );
+    if (customRate > 0) {
+      discountPct = customRate;
+      tierTitle = `${customRate}% Customer Discount`;
+    }
+
+    const tierName = customer.pricing_tier ||
+      (customer.metadata?.pricing_tier as string) ||
+      (customer.metadata?.tier as string);
+
+    if (tierName && !tierTitle) {
+      const lower = tierName.toLowerCase();
+      if (lower.includes("vip")) {
+        discountPct = 10;
+        tierTitle = "VIP (10% Off)";
+      } else if (lower.includes("wholesale") || lower.includes("b2b")) {
+        discountPct = 20;
+        tierTitle = "Wholesale (20% Off)";
+      } else if (lower.includes("corporate")) {
+        discountPct = 15;
+        tierTitle = "Corporate (15% Off)";
+      }
+    }
+
+    if (discountPct > 0) {
+      const discounted = Math.round(
+        originalPrice * (1 - discountPct / 100) * 100,
+      ) / 100;
+      return {
+        unitPrice: discounted,
+        originalPrice,
+        priceListName: tierTitle || `${discountPct}% Off`,
+        discountPct,
+      };
+    }
+
+    return { unitPrice: originalPrice, originalPrice };
+  };
+
+  // Automatic Price List recalculation whenever customer or price lists change
+  useEffect(() => {
+    if (cart.length === 0) return;
+    setCart((prevCart) =>
+      prevCart.map((item) => {
+        if (item.part.isCustom) return item;
+        const basePrice = item.originalPrice ??
+          item.part.originalPrice ??
+          item.part.price;
+        const priceInfo = computePriceForCustomer(
+          item.part.id,
+          basePrice,
+          selectedCustomer,
+        );
+        const updatedPart = {
+          ...item.part,
+          originalPrice: basePrice,
+          price: priceInfo.unitPrice,
+          appliedPriceList: priceInfo.priceListName,
+          discountPct: priceInfo.discountPct,
+        };
+        return {
+          ...item,
+          part: updatedPart,
+          originalPrice: basePrice,
+          appliedPriceList: priceInfo.priceListName,
+          discountPct: priceInfo.discountPct,
+        };
+      })
+    );
+
+    if (selectedCustomer) {
+      const tierLabel = selectedCustomer.pricing_tier ||
+        selectedCustomer.groups?.[0]?.name;
+      if (tierLabel) {
+        setStatusNotice(
+          `🏷️ Automatic Price List applied for ${selectedCustomer.first_name} (${tierLabel}).`,
+        );
+      }
+    }
+  }, [selectedCustomer, priceLists]);
 
   // Fetch repairs when switching to workshop tab or when admin logs in
   useEffect(() => {
@@ -599,6 +811,21 @@ export default function PosTerminal() {
   };
 
   const addToCart = (part: ProductPart, qty: number = 1) => {
+    const basePrice = part.originalPrice ?? part.price;
+    const priceInfo = computePriceForCustomer(
+      part.id,
+      basePrice,
+      selectedCustomer,
+    );
+
+    const adjustedPart: ProductPart = {
+      ...part,
+      originalPrice: basePrice,
+      price: priceInfo.unitPrice,
+      appliedPriceList: priceInfo.priceListName,
+      discountPct: priceInfo.discountPct,
+    };
+
     setCart((prev) => {
       const existing = prev.find((item) => item.part.id === part.id);
       if (existing) {
@@ -608,7 +835,17 @@ export default function PosTerminal() {
             : item
         );
       }
-      return [...prev, { id: part.id, part, quantity: qty }];
+      return [
+        ...prev,
+        {
+          id: part.id,
+          part: adjustedPart,
+          quantity: qty,
+          originalPrice: basePrice,
+          appliedPriceList: priceInfo.priceListName,
+          discountPct: priceInfo.discountPct,
+        },
+      ];
     });
   };
 
@@ -895,12 +1132,25 @@ export default function PosTerminal() {
   };
 
   // Complete Order: Defaults to active admin user if no customer is selected
-  const completeCheckout = async () => {
+  const completeCheckout = async (customTender?: {
+    type?: "cash" | "paystack";
+    tendered?: number;
+    change?: number;
+    reference?: string;
+  }) => {
     if (cart.length === 0) {
       setStatusNotice("Cart is empty.");
       return;
     }
     if (!activeAdmin) return;
+
+    const tenderType = customTender?.type || "cash";
+    const tenderedAmt = customTender?.tendered !== undefined
+      ? customTender.tendered
+      : (tenderedAmount || grandTotal);
+    const changeAmt = customTender?.change !== undefined
+      ? customTender.change
+      : changeDue;
 
     // Requirement: if no customer is selected, default to the logged in user as customer
     const effectiveCustomer: POSCustomer = selectedCustomer || {
@@ -938,12 +1188,14 @@ export default function PosTerminal() {
       tax,
       grand_total: grandTotal,
       tender: {
-        type: "cash",
-        tendered: tenderedAmount || grandTotal,
-        change: changeDue,
+        type: tenderType,
+        tendered: tenderedAmt,
+        change: changeAmt,
+        reference: customTender?.reference,
       },
     };
 
+    let checkoutResult: any = null;
     try {
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
@@ -962,6 +1214,9 @@ export default function PosTerminal() {
           body: JSON.stringify(payload),
         });
       }
+      if (res.ok) {
+        checkoutResult = await res.json();
+      }
     } catch {
       // offline fallback handled by local state
     }
@@ -969,20 +1224,189 @@ export default function PosTerminal() {
     const custName = `${effectiveCustomer.first_name} ${
       effectiveCustomer.last_name || ""
     }`.trim();
+
+    // Digital Receipt Notification Notice (Talksasa SMS / Email)
+    const hasDigitalContact = Boolean(
+      effectiveCustomer.phone || effectiveCustomer.email,
+    );
+    const digitalDocLink = checkoutResult?.document?.short_pdf_link;
+    const digitalNotice = hasDigitalContact
+      ? ` 📧 Digital receipt dispatched to ${
+        effectiveCustomer.phone || effectiveCustomer.email
+      }${digitalDocLink ? ` (PDF: ${digitalDocLink})` : ""}.`
+      : "";
+
+    // Automatically trigger thermal slip printing concurrently
+    printReceipt(orderNum);
+
     clearCart();
     setSelectedCustomer(null);
     setStatusNotice(
-      `✔ Order ${orderNum} completed! Tagged to ${activeAdmin.first_name} (Client: ${custName}).`,
+      `✔ Order ${orderNum} completed! Tagged to ${activeAdmin.first_name} (Client: ${custName}).${digitalNotice}`,
     );
   };
 
-  const printReceipt = () => {
-    const order = lastOrderNum || "POS-SAMPLE";
+  const printReceipt = (orderId?: string) => {
+    const order = orderId || lastOrderNum || "POS-SAMPLE";
     globalThis.open(
       `/api/pos/receipt?order_number=${order}&format=html`,
       "_blank",
     );
     setStatusNotice(`Receipt opened for order #${order}`);
+  };
+
+  // Open STK modal for general cart checkout
+  const openCartStkModal = () => {
+    if (cart.length === 0) {
+      setStatusNotice("Cart is empty.");
+      return;
+    }
+    setStkPhone(selectedCustomer?.phone || "");
+    setStkAmount(grandTotal);
+    setStkTicketId(null);
+    setStkStep("input");
+    setStkNotice("");
+    setShowStkModal(true);
+  };
+
+  // Open STK modal for repair ticket payment
+  const openRepairStkModal = (ticket: RepairTicketRecord) => {
+    const due = ticket.balance_due ??
+      Math.max(
+        0,
+        (ticket.total_estimate || 0) -
+          (ticket.deposit_amount || ticket.amount_paid || 0),
+      );
+    setStkPhone(ticket.customer_phone || selectedCustomer?.phone || "");
+    setStkAmount(due > 0 ? due : (ticket.total_estimate || 1000));
+    setStkTicketId(ticket.id);
+    setStkStep("input");
+    setStkNotice(`Repair #${ticket.ticket_number} - Balance Due`);
+    setShowStkModal(true);
+  };
+
+  // Send M-Pesa STK Push
+  const handleSendStkPush = async (e?: Event) => {
+    if (e) e.preventDefault();
+    const cleanPhone = stkPhone.trim();
+    if (!cleanPhone || cleanPhone.length < 9) {
+      setStkNotice(
+        "Please enter a valid phone number (e.g. 0712345678 or +254...)",
+      );
+      return;
+    }
+
+    setStkStep("pushing");
+    setStkNotice("Dispatching M-Pesa STK prompt to customer device...");
+
+    try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (adminToken) headers["Authorization"] = `Bearer ${adminToken}`;
+
+      const res = await fetch("/api/pos/stk-push", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          phone: cleanPhone,
+          amount: stkAmount,
+          ticket_id: stkTicketId || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.reference) {
+        setStkStep("failed");
+        setStkNotice(
+          data.error || data.message || "Failed to initiate M-Pesa prompt.",
+        );
+        return;
+      }
+
+      setStkReference(data.reference);
+      setStkStep("waiting");
+      setStkCountdown(60);
+      setStkNotice(
+        `M-Pesa PIN prompt sent to ${cleanPhone}. Waiting for customer to enter PIN...`,
+      );
+
+      pollStkVerification(data.reference, cleanPhone);
+    } catch (err: any) {
+      setStkStep("failed");
+      setStkNotice(err.message || "Network error initiating STK push.");
+    }
+  };
+
+  // Poll transaction verification
+  const pollStkVerification = (ref: string, _phone: string) => {
+    let timeLeft = 60;
+    const interval = setInterval(async () => {
+      timeLeft -= 2;
+      setStkCountdown(Math.max(0, timeLeft));
+
+      try {
+        const res = await fetch(
+          `/api/pos/verify-payment?reference=${encodeURIComponent(ref)}`,
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === "success" || data.success) {
+            clearInterval(interval);
+            setStkStep("success");
+            setStkNotice(
+              `✔ Payment of KES ${stkAmount.toFixed(2)} received via M-Pesa!`,
+            );
+
+            setTimeout(() => {
+              setShowStkModal(false);
+              if (stkTicketId) {
+                // Update local repair ticket
+                setRepairs((prev) =>
+                  prev.map((r) =>
+                    r.id === stkTicketId
+                      ? {
+                        ...r,
+                        amount_paid: (r.amount_paid || 0) + stkAmount,
+                        balance_due: Math.max(
+                          0,
+                          (r.balance_due || 0) - stkAmount,
+                        ),
+                        payment_status: "captured",
+                      }
+                      : r
+                  )
+                );
+                setStatusNotice(
+                  `✔ M-Pesa payment of KES ${
+                    stkAmount.toFixed(2)
+                  } recorded for repair ticket!`,
+                );
+              } else {
+                // Complete cart checkout with paystack tender
+                completeCheckout({
+                  type: "paystack",
+                  tendered: stkAmount,
+                  change: 0,
+                  reference: ref,
+                });
+              }
+            }, 1800);
+            return;
+          }
+        }
+      } catch {
+        // Continue polling
+      }
+
+      if (timeLeft <= 0) {
+        clearInterval(interval);
+        setStkStep("failed");
+        setStkNotice(
+          "STK prompt timed out. The customer did not enter their PIN in time.",
+        );
+      }
+    }, 2000);
   };
 
   // Workshop Intake Ticket Submission
@@ -1932,9 +2356,19 @@ export default function PosTerminal() {
                                 </span>
                               )}
                             </div>
-                            <p class="text-[10px] text-zinc-400">
-                              KES {item.part.price.toFixed(2)} each
-                            </p>
+                            <div class="flex items-center space-x-1.5 flex-wrap">
+                              <p class="text-[10px] text-zinc-400">
+                                KES {item.part.price.toFixed(2)} each
+                              </p>
+                              {item.part.appliedPriceList &&
+                                item.originalPrice &&
+                                item.part.price !== item.originalPrice && (
+                                <span class="text-[9px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1 rounded">
+                                  🏷️ {item.part.appliedPriceList} (was KES{" "}
+                                  {item.originalPrice.toFixed(0)})
+                                </span>
+                              )}
+                            </div>
                           </div>
                           <div class="flex items-center space-x-2">
                             <button
@@ -2059,24 +2493,32 @@ export default function PosTerminal() {
                   </div>
                 </div>
 
-                {/* Checkout & Print Buttons */}
-                <div class="grid grid-cols-2 gap-2">
+                {/* Tender Buttons: Cash, M-Pesa STK Push, and Thermal Print */}
+                <div class="grid grid-cols-2 gap-2 mb-2">
                   <button
-                    onClick={printReceipt}
-                    class="inline-flex items-center justify-center space-x-1.5 py-2.5 bg-[#2C2C2E] hover:bg-zinc-700 border border-[#3A3A3C] rounded-lg text-xs font-semibold text-zinc-200 transition active:scale-95"
-                  >
-                    <Printer class="w-4 h-4" />
-                    <span>Print 58mm ESC/POS</span>
-                  </button>
-                  <button
-                    onClick={completeCheckout}
+                    onClick={() => completeCheckout({ type: "cash" })}
                     disabled={cart.length === 0}
                     class="inline-flex items-center justify-center space-x-1.5 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition active:scale-95 shadow"
                   >
                     <CheckCircle2 class="w-4 h-4" />
-                    <span>Charge Cash &amp; Complete</span>
+                    <span>Charge Cash</span>
+                  </button>
+                  <button
+                    onClick={openCartStkModal}
+                    disabled={cart.length === 0}
+                    class="inline-flex items-center justify-center space-x-1.5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition active:scale-95 shadow"
+                  >
+                    <Smartphone class="w-4 h-4" />
+                    <span>M-Pesa STK Push</span>
                   </button>
                 </div>
+                <button
+                  onClick={() => printReceipt()}
+                  class="w-full inline-flex items-center justify-center space-x-1.5 py-2 bg-[#2C2C2E] hover:bg-zinc-700 border border-[#3A3A3C] rounded-lg text-xs font-semibold text-zinc-300 transition active:scale-95"
+                >
+                  <Printer class="w-4 h-4" />
+                  <span>Reprint 58mm ESC/POS</span>
+                </button>
               </div>
             </section>
           </div>
@@ -2578,7 +3020,27 @@ export default function PosTerminal() {
               </div>
             </div>
 
-            <div class="pt-4 mt-4 border-t border-[#2C2C2E] flex justify-end">
+            <div class="pt-4 mt-4 border-t border-[#2C2C2E] flex justify-between items-center">
+              <div>
+                {selectedTicket.status !== "completed" && (
+                  <button
+                    type="button"
+                    onClick={() => openRepairStkModal(selectedTicket)}
+                    class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition active:scale-95 shadow flex items-center space-x-1.5"
+                  >
+                    <Smartphone class="w-3.5 h-3.5" />
+                    <span>
+                      Push M-Pesa STK (KES {(selectedTicket.balance_due ??
+                        Math.max(
+                          0,
+                          (selectedTicket.total_estimate || 0) -
+                            (selectedTicket.deposit_amount ||
+                              selectedTicket.amount_paid || 0),
+                        )).toFixed(2)})
+                    </span>
+                  </button>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={() => setSelectedTicket(null)}
@@ -3174,6 +3636,229 @@ export default function PosTerminal() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* ==================================================== */}
+      {/* MODAL: M-PESA STK PUSH EXPRESS CHECKOUT              */}
+      {/* ==================================================== */}
+      {showStkModal && (
+        <div class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div class="bg-[#1C1C1E] border border-emerald-500/40 rounded-2xl p-6 max-w-md w-full shadow-2xl relative overflow-hidden">
+            {/* Top accent glow */}
+            <div class="absolute -top-12 -left-12 w-36 h-36 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+
+            <div class="flex items-center justify-between pb-3 mb-4 border-b border-[#2C2C2E]">
+              <div class="flex items-center space-x-2.5">
+                <div class="w-9 h-9 rounded-xl bg-emerald-600/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                  <Smartphone class="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                    <span>M-Pesa STK Push</span>
+                    <span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono font-normal">
+                      Safaricom
+                    </span>
+                  </h3>
+                  <p class="text-[11px] text-zinc-400">
+                    Instant SIM Toolkit PIN prompt to customer device
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  if (stkStep === "waiting") {
+                    if (
+                      confirm(
+                        "STK prompt is still awaiting PIN. Abort transaction?",
+                      )
+                    ) {
+                      setShowStkModal(false);
+                      setStkStep("input");
+                    }
+                  } else {
+                    setShowStkModal(false);
+                    setStkStep("input");
+                  }
+                }}
+                class="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-[#2C2C2E] transition"
+              >
+                <X class="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Step 1: Input Phone & Confirm */}
+            {stkStep === "input" && (
+              <form onSubmit={handleSendStkPush} class="space-y-4">
+                <div class="bg-[#2C2C2E] p-3 rounded-xl border border-[#3A3A3C] space-y-2">
+                  <div class="flex justify-between text-xs text-zinc-400">
+                    <span>Target Customer:</span>
+                    <span class="text-zinc-200 font-semibold truncate max-w-[200px]">
+                      {selectedCustomer
+                        ? `${selectedCustomer.first_name} ${
+                          selectedCustomer.last_name || ""
+                        }`.trim()
+                        : "Walk-in Retail Client"}
+                    </span>
+                  </div>
+                  <div class="flex justify-between text-sm font-bold text-white pt-2 border-t border-[#3A3A3C]">
+                    <span>Amount to Prompt:</span>
+                    <span class="text-emerald-400 font-mono text-base">
+                      KES {stkAmount.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-zinc-300 mb-1.5">
+                    Customer Safaricom M-Pesa Phone Number:
+                  </label>
+                  <div class="relative">
+                    <span class="absolute left-3 top-2.5 text-xs text-zinc-400 font-mono">
+                      🇰🇪
+                    </span>
+                    <input
+                      type="tel"
+                      value={stkPhone}
+                      onInput={(e) =>
+                        setStkPhone((e.target as HTMLInputElement).value)}
+                      placeholder="0712345678 or 254..."
+                      required
+                      class="w-full bg-[#2C2C2E] border border-[#3A3A3C] rounded-lg pl-9 pr-3 py-2 text-sm text-white font-mono placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <p class="text-[10px] text-zinc-400 mt-1">
+                    Accepts 07..., 01..., or +254... format. Customer phone will
+                    wake up with PIN prompt.
+                  </p>
+                </div>
+
+                {stkNotice && (
+                  <div class="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300">
+                    {stkNotice}
+                  </div>
+                )}
+
+                <div class="pt-2 flex space-x-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowStkModal(false)}
+                    class="flex-1 py-2.5 bg-[#2C2C2E] hover:bg-zinc-700 text-xs font-semibold rounded-lg text-zinc-300 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition active:scale-95 shadow flex items-center justify-center space-x-1.5"
+                  >
+                    <Smartphone class="w-4 h-4" />
+                    <span>Send M-Pesa Prompt</span>
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Step 2: Pushing STK */}
+            {stkStep === "pushing" && (
+              <div class="py-8 text-center space-y-3">
+                <div class="w-12 h-12 mx-auto rounded-full border-2 border-emerald-500/30 border-t-emerald-500 animate-spin flex items-center justify-center" />
+                <p class="text-sm font-semibold text-white">
+                  Sending STK push to Safaricom network...
+                </p>
+                <p class="text-xs text-zinc-400 font-mono">{stkPhone}</p>
+              </div>
+            )}
+
+            {/* Step 3: Waiting for PIN Entry */}
+            {stkStep === "waiting" && (
+              <div class="py-6 text-center space-y-4">
+                <div class="relative w-16 h-16 mx-auto flex items-center justify-center">
+                  <div class="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping" />
+                  <div class="relative w-14 h-14 rounded-full bg-emerald-600/30 border border-emerald-500 flex items-center justify-center text-emerald-400">
+                    <Smartphone class="w-7 h-7 animate-pulse" />
+                  </div>
+                </div>
+
+                <div class="space-y-1">
+                  <h4 class="text-sm font-bold text-white">
+                    M-Pesa PIN Prompt Dispatched!
+                  </h4>
+                  <p class="text-xs text-zinc-300">
+                    Ask customer to check their handset and enter M-Pesa PIN.
+                  </p>
+                  <p class="text-[11px] text-zinc-400 font-mono">
+                    Target: {stkPhone} • Ref: {stkReference}
+                  </p>
+                </div>
+
+                <div class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-[#2C2C2E] border border-[#3A3A3C] text-xs font-mono text-emerald-400">
+                  <Clock class="w-3.5 h-3.5" />
+                  <span>Awaiting PIN: {stkCountdown}s remaining</span>
+                </div>
+
+                <div class="pt-2">
+                  <button
+                    onClick={() => {
+                      setShowStkModal(false);
+                      setStkStep("input");
+                    }}
+                    class="px-4 py-1.5 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-[#2C2C2E] rounded transition"
+                  >
+                    Cancel Transaction
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: Success */}
+            {stkStep === "success" && (
+              <div class="py-6 text-center space-y-3">
+                <div class="w-14 h-14 mx-auto rounded-full bg-emerald-500/20 border border-emerald-500 flex items-center justify-center text-emerald-400">
+                  <CheckCircle2 class="w-8 h-8" />
+                </div>
+                <h4 class="text-sm font-bold text-white">
+                  Payment Confirmed!
+                </h4>
+                <p class="text-xs text-emerald-400 font-mono">
+                  KES {stkAmount.toFixed(2)} received via M-Pesa
+                </p>
+                <p class="text-[11px] text-zinc-400">
+                  Finalizing order, generating digital receipt, and printing
+                  slip...
+                </p>
+              </div>
+            )}
+
+            {/* Step 5: Failed / Timeout */}
+            {stkStep === "failed" && (
+              <div class="py-6 text-center space-y-3">
+                <div class="w-12 h-12 mx-auto rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400">
+                  <X class="w-6 h-6" />
+                </div>
+                <h4 class="text-sm font-bold text-white">
+                  M-Pesa Transaction Incomplete
+                </h4>
+                <p class="text-xs text-red-300 px-4">
+                  {stkNotice ||
+                    "Customer cancelled or did not enter M-Pesa PIN."}
+                </p>
+                <div class="pt-2 flex justify-center space-x-2">
+                  <button
+                    onClick={() => setStkStep("input")}
+                    class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition"
+                  >
+                    Retry STK Push
+                  </button>
+                  <button
+                    onClick={() => setShowStkModal(false)}
+                    class="px-4 py-2 bg-[#2C2C2E] hover:bg-zinc-700 text-zinc-300 rounded-lg text-xs font-semibold transition"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

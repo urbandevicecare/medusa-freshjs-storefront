@@ -11,6 +11,9 @@ import { handler as posCustomersHandler } from "../routes/api/pos/customers.ts";
 import { handler as posAuthHandler } from "../routes/api/pos/auth.ts";
 import { handler as posRepairsHandler } from "../routes/api/pos/repairs.ts";
 import { handler as posProductsHandler } from "../routes/api/pos/products.ts";
+import { handler as posStkPushHandler } from "../routes/api/pos/stk-push.ts";
+import { handler as posVerifyPaymentHandler } from "../routes/api/pos/verify-payment.ts";
+import { handler as posPriceListsHandler } from "../routes/api/pos/price-lists.ts";
 
 const service = new MedusaPOSService();
 
@@ -223,4 +226,109 @@ Deno.test("POS API - /api/pos/products endpoint (live suggestions & infinite scr
   assertExists(data.products);
   assertEquals(typeof data.count, "number");
   assertEquals(typeof data.has_more, "boolean");
+});
+
+Deno.test("POS - Automatic Price List recalculation for customer groups & tiers", () => {
+  const basePrice = 10000;
+
+  // Walk-in retail: standard base price
+  const p1 = service.calculatePriceForCustomer("var_screen", basePrice, null);
+  assertEquals(p1.unitPrice, 10000);
+
+  // VIP Customer: 10% discount
+  const vipCust = {
+    id: "cus_vip",
+    first_name: "VIP",
+    email: "vip@example.com",
+    groups: [{ id: "grp_vip", name: "VIP" }],
+    pricing_tier: "VIP",
+  };
+  const p2 = service.calculatePriceForCustomer(
+    "var_screen",
+    basePrice,
+    vipCust,
+  );
+  assertEquals(p2.unitPrice, 9000);
+  assertEquals(p2.discountPct, 10);
+
+  // Wholesale Customer: 20% discount
+  const wsCust = {
+    id: "cus_ws",
+    first_name: "Wholesale",
+    email: "trade@example.com",
+    groups: [{ id: "grp_ws", name: "Wholesale" }],
+    pricing_tier: "Wholesale",
+  };
+  const p3 = service.calculatePriceForCustomer("var_screen", basePrice, wsCust);
+  assertEquals(p3.unitPrice, 8000);
+  assertEquals(p3.discountPct, 20);
+});
+
+Deno.test("POS API - M-Pesa STK Push Express Checkout Initiation & Verification", async () => {
+  // 1. Initiate STK push
+  const pushReq = new Request("http://localhost:8000/api/pos/stk-push", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      phone: "0712345678",
+      amount: 3500,
+    }),
+  });
+  const pushRes = await posStkPushHandler(pushReq);
+  assertEquals(pushRes.status, 200);
+  const pushData = await pushRes.json();
+  assertEquals(pushData.success, true);
+  assertExists(pushData.reference);
+
+  // 2. Verify STK payment
+  const verifyReq = new Request(
+    `http://localhost:8000/api/pos/verify-payment?reference=${pushData.reference}`,
+  );
+  const verifyRes = await posVerifyPaymentHandler(verifyReq);
+  assertEquals(verifyRes.status, 200);
+  const verifyData = await verifyRes.json();
+  assertEquals(verifyData.success, true);
+});
+
+Deno.test("POS API - Digital Receipt & Documents Plugin Triggering on Checkout", async () => {
+  const req = new Request("http://localhost:8000/api/pos/checkout", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      order_number: "POS-STORE-001",
+      cashier: {
+        id: "usr_01KRV9NELLY",
+        name: "Nelly",
+        email: "nelly@example.com",
+      },
+      customer: {
+        id: "cus_john",
+        first_name: "John",
+        phone: "+254712345678",
+        email: "john@example.com",
+      },
+      items: [{
+        variant_id: "var_1",
+        title: "OEM Screen",
+        quantity: 1,
+        unit_price: 12000,
+        total: 12000,
+      }],
+      subtotal: 12000,
+      tax: 0,
+      grand_total: 12000,
+      tender: {
+        type: "paystack",
+        tendered: 12000,
+        change: 0,
+        reference: "STK-123456",
+      },
+    }),
+  });
+  const res = await posCheckoutHandler(req);
+  assertEquals(res.status, 200);
+  const data = await res.json();
+  assertEquals(data.success, true);
+  assertEquals(data.metadata.tender_type, "paystack");
+  assertEquals(data.metadata.customer_phone, "+254712345678");
 });
