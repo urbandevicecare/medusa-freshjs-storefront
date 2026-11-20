@@ -1,15 +1,17 @@
-import { MedusaPOSService } from "../../../services/medusa.ts";
+import { MedusaPOSService, resolveRequest } from "../../../services/medusa.ts";
 
 const service = new MedusaPOSService();
 
-export async function handler(req: Request): Promise<Response> {
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-    });
-  }
-
+export async function handler(ctxOrReq: any): Promise<Response> {
   try {
+    const { req } = resolveRequest(ctxOrReq);
+    if (req.method !== "POST") {
+      return new Response(JSON.stringify({ error: "Method not allowed" }), {
+        status: 405,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     const body = await req.json();
     const order = await service.createPosOrder(body);
 
@@ -17,6 +19,9 @@ export async function handler(req: Request): Promise<Response> {
       headers: { "Content-Type": "application/json" },
     });
   } catch (e: any) {
-    return new Response(JSON.stringify({ error: e.message }), { status: 400 });
+    return new Response(JSON.stringify({ error: e.message }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }

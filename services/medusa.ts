@@ -1,5 +1,22 @@
 import { medusa as defaultMedusaClient } from "../lib/sdk.ts";
 
+export function resolveRequest(input: any): { req: Request; url: URL } {
+  if (input instanceof Request) {
+    return { req: input, url: new URL(input.url) };
+  }
+  if (input && input.req instanceof Request) {
+    const url = input.url instanceof URL ? input.url : new URL(input.req.url);
+    return { req: input.req, url };
+  }
+  if (input && input.req) {
+    return {
+      req: input.req as Request,
+      url: new URL(input.url || input.req.url),
+    };
+  }
+  throw new Error("Invalid request context");
+}
+
 export interface AdminUser {
   id: string;
   email: string;
@@ -251,36 +268,46 @@ export class MedusaPOSService {
     if (!cleanEmail) throw new Error("Email is required");
     if (!pass) throw new Error("Password is required");
 
-    // 1. Try real Medusa v2 /auth/user/emailpass
-    try {
-      const resp = await fetch(`${this.backendUrl}/auth/user/emailpass`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: cleanEmail, password: pass }),
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        const token = data.token || `jwt_${Date.now()}`;
-        const namePart = cleanEmail.split("@")[0];
-        const role = cleanEmail.includes("tech")
-          ? "Admin (Repair Technician)"
-          : cleanEmail.includes("cash")
-          ? "Admin (Cashier)"
-          : "Admin (Store Manager)";
-        const admin: AdminUser = {
-          id: data.user?.id ||
-            `usr_${cleanEmail.replace(/[^a-zA-Z0-9]/g, "_")}`,
-          email: cleanEmail,
-          first_name: data.user?.first_name ||
-            namePart.charAt(0).toUpperCase() + namePart.slice(1),
-          last_name: data.user?.last_name || "",
-          role,
-        };
-        this.activeAdminTokens.set(token, admin);
-        return { admin, token };
+    // 1. Try real Medusa v2 /auth/user/emailpass and /auth/admin/emailpass
+    const endpoints = [
+      `${this.backendUrl}/auth/user/emailpass`,
+      `${this.backendUrl}/auth/admin/emailpass`,
+    ];
+
+    for (const endpoint of endpoints) {
+      try {
+        const resp = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: cleanEmail, password: pass }),
+        });
+        if (resp.ok) {
+          const contentType = resp.headers.get("content-type") || "";
+          if (contentType.includes("application/json")) {
+            const data = await resp.json();
+            const token = data.token || `jwt_${Date.now()}`;
+            const namePart = cleanEmail.split("@")[0];
+            const role = cleanEmail.includes("tech")
+              ? "Admin (Repair Technician)"
+              : cleanEmail.includes("cash")
+              ? "Admin (Cashier)"
+              : "Admin (Store Manager)";
+            const admin: AdminUser = {
+              id: data.user?.id ||
+                `usr_${cleanEmail.replace(/[^a-zA-Z0-9]/g, "_")}`,
+              email: cleanEmail,
+              first_name: data.user?.first_name ||
+                namePart.charAt(0).toUpperCase() + namePart.slice(1),
+              last_name: data.user?.last_name || "",
+              role,
+            };
+            this.activeAdminTokens.set(token, admin);
+            return { admin, token };
+          }
+        }
+      } catch {
+        // Fall through to next endpoint or known staff accounts
       }
-    } catch {
-      // Fall through to known staff accounts
     }
 
     // 2. Known staff accounts with Admin privileges

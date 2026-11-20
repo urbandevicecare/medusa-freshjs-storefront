@@ -387,25 +387,32 @@ export default function PosTerminal() {
 
     setIsLoggingIn(true);
     try {
-      let res = await fetch("/api/pos/auth", {
+      const res = await fetch("/api/pos/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-      if (!res.ok) {
-        res = await fetch("/api/auth", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        });
+
+      const rawText = await res.text();
+      let data: any = null;
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        if (!res.ok) {
+          throw new Error(
+            `Authentication failed: server returned status ${res.status}. Please check Medusa server connection.`,
+          );
+        }
+        throw new Error(
+          "Invalid response received from authentication server.",
+        );
       }
 
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || "Invalid Medusa Admin credentials");
+        throw new Error(data?.error || "Invalid Medusa Admin credentials");
       }
 
-      const session = await res.json();
+      const session = data;
       if (session && session.admin) {
         setActiveAdmin(session.admin);
         setAdminToken(session.token);
