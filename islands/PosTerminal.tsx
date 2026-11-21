@@ -1407,6 +1407,13 @@ export default function PosTerminal() {
               }
             }, 1800);
             return;
+          } else if (data.status === "failed" || data.status === "abandoned") {
+            clearInterval(interval);
+            setStkStep("failed");
+            setStkNotice(
+              data.message || "M-Pesa payment prompt failed or was declined by customer.",
+            );
+            return;
           }
         }
       } catch {
@@ -3337,6 +3344,46 @@ export default function PosTerminal() {
                   placeholder="e.g. Magsafe 3 Charger 140W, Sleeve, SIM Tray"
                   class="w-full bg-[#2C2C2E] border border-[#3A3A3C] rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500"
                 />
+              </div>
+
+              {/* Live Catalog Part Selection */}
+              <div>
+                <label class="block text-[11px] font-semibold text-zinc-300 mb-1 flex items-center justify-between">
+                  <span>Required Replacement Part (Live Medusa Catalog)</span>
+                  <span class="text-[10px] text-zinc-400 font-normal">
+                    {catalog.length} live parts available
+                  </span>
+                </label>
+                <select
+                  onChange={(e) => {
+                    const partId = (e.target as HTMLSelectElement).value;
+                    const chosen = catalog.find((p) => p.id === partId);
+                    if (chosen) {
+                      const pEst = chosen.price || 0;
+                      const lEst = parseFloat(intakeForm.laborEstimate) || 0;
+                      setIntakeForm({
+                        ...intakeForm,
+                        partsEstimate: String(pEst),
+                        totalEstimate: String(pEst + lEst),
+                      });
+                    } else {
+                      const lEst = parseFloat(intakeForm.laborEstimate) || 0;
+                      setIntakeForm({
+                        ...intakeForm,
+                        partsEstimate: "0",
+                        totalEstimate: String(lEst),
+                      });
+                    }
+                  }}
+                  class="w-full bg-[#2C2C2E] border border-[#3A3A3C] rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-blue-500 font-mono"
+                >
+                  <option value="">-- No part / Diagnostic service only --</option>
+                  {catalog.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.title} {p.sku ? `(${p.sku})` : ""} - KES {p.price.toFixed(2)} [Stock: {p.inventory_quantity ?? 0}]
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div class="grid grid-cols-2 gap-3">

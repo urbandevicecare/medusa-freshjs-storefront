@@ -1237,11 +1237,16 @@ export class MedusaPOSService {
               message: data.message || "STK push initiated successfully",
               data: data.data,
             };
+          } else if (resp.status === 400 || resp.status === 404 || resp.status === 422 || resp.status === 500) {
+            const err = await resp.json().catch(() => ({}));
+            if (err?.message || err?.error) {
+              throw new Error(err.message || err.error);
+            }
           }
         }
 
-        // 2. General Cart STK push via /admin/paystack/stk-push
-        const paystackResp = await fetch(
+        // 2. General Cart STK push via /admin/paystack/stk-push or /store/paystack/stk-push
+        let paystackResp = await fetch(
           `${this.backendUrl}/admin/paystack/stk-push`,
           {
             method: "POST",
@@ -1253,6 +1258,20 @@ export class MedusaPOSService {
             }),
           },
         );
+        if (paystackResp.status === 404 || paystackResp.status === 401) {
+          paystackResp = await fetch(
+            `${this.backendUrl}/store/paystack/stk-push`,
+            {
+              method: "POST",
+              headers,
+              body: JSON.stringify({
+                order_id: order_id || `pos_${Date.now()}`,
+                phone,
+                amount,
+              }),
+            },
+          );
+        }
         if (paystackResp.ok) {
           const data = await paystackResp.json();
           return {
@@ -1261,8 +1280,17 @@ export class MedusaPOSService {
             message: data.message || `STK push sent to ${phone}`,
             data: data.data,
           };
+        } else if (paystackResp.status >= 400) {
+          const err = await paystackResp.json().catch(() => ({}));
+          if (err?.message || err?.error) {
+            throw new Error(err.message || err.error);
+          }
         }
       } catch (err: any) {
+        // If error came from the live server response, propagate it directly
+        if (err.message && !err.message.includes("fetch failed") && err.name !== "TypeError") {
+          throw err;
+        }
         console.warn(
           "[MedusaPOSService] Remote STK push error, using simulation fallback:",
           err.message,
@@ -1293,25 +1321,47 @@ export class MedusaPOSService {
 
     if (this.backendUrl) {
       try {
-        const resp = await fetch(`${this.backendUrl}/store/paystack/verify`, {
+        let resp = await fetch(`${this.backendUrl}/store/paystack/verify`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ reference }),
         });
+        if (resp.status === 404) {
+          resp = await fetch(`${this.backendUrl}/admin/paystack/verify`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ reference }),
+          });
+        }
+        if (resp.status === 404) {
+          resp = await fetch(`${this.backendUrl}/store/repairs/paystack/verify`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ reference }),
+          });
+        }
         if (resp.ok) {
           const data = await resp.json();
+          const isSuccess = Boolean(data.success || data.status === "success" || data.repair_ticket);
           return {
-            success: data.success || data.status === "success",
-            status: data.status || (data.success ? "success" : "pending"),
-            data: data.data,
+            success: isSuccess,
+            status: data.status || (isSuccess ? "success" : "pending"),
+            data: data.data || data,
+          };
+        } else if (resp.status === 400) {
+          const data = await resp.json().catch(() => ({}));
+          return {
+            success: false,
+            status: data.status || data.data?.status || "pending",
+            data: data.data || data,
           };
         }
-      } catch {
-        // Fall through
+      } catch (err: any) {
+        // Network connection error
       }
     }
 
-    // Fallback verification response
+    // Fallback verification response for offline/simulation mode
     return {
       success: true,
       status: "success",
