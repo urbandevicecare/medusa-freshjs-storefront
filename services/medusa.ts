@@ -1237,11 +1237,11 @@ export class MedusaPOSService {
               message: data.message || "STK push initiated successfully",
               data: data.data,
             };
-          } else if (resp.status === 400 || resp.status === 404 || resp.status === 422 || resp.status === 500) {
+          } else if (resp.status >= 400) {
             const err = await resp.json().catch(() => ({}));
-            if (err?.message || err?.error) {
-              throw new Error(err.message || err.error);
-            }
+            throw new Error(
+              err?.message || err?.error || `Repair STK push failed with status ${resp.status}`,
+            );
           }
         }
 
@@ -1282,9 +1282,9 @@ export class MedusaPOSService {
           };
         } else if (paystackResp.status >= 400) {
           const err = await paystackResp.json().catch(() => ({}));
-          if (err?.message || err?.error) {
-            throw new Error(err.message || err.error);
-          }
+          throw new Error(
+            err?.message || err?.error || `STK push rejected by gateway (HTTP ${paystackResp.status})`,
+          );
         }
       } catch (err: any) {
         // If error came from the live server response, propagate it directly
@@ -1314,7 +1314,7 @@ export class MedusaPOSService {
    */
   public async verifyStkPayment(
     reference: string,
-  ): Promise<{ success: boolean; status: string; data?: any }> {
+  ): Promise<{ success: boolean; status: string; data?: any; message?: string }> {
     if (!reference) {
       throw new Error("Reference is required for payment verification");
     }
@@ -1346,13 +1346,15 @@ export class MedusaPOSService {
           return {
             success: isSuccess,
             status: data.status || (isSuccess ? "success" : "pending"),
+            message: data.message,
             data: data.data || data,
           };
-        } else if (resp.status === 400) {
+        } else if (resp.status >= 400 && resp.status !== 404) {
           const data = await resp.json().catch(() => ({}));
           return {
             success: false,
-            status: data.status || data.data?.status || "pending",
+            status: data.status || data.data?.status || "failed",
+            message: data.message || `Payment verification failed (HTTP ${resp.status})`,
             data: data.data || data,
           };
         }
@@ -1362,10 +1364,18 @@ export class MedusaPOSService {
     }
 
     // Fallback verification response for offline/simulation mode
+    if (reference.startsWith("STK-POS-") || !this.backendUrl) {
+      return {
+        success: true,
+        status: "success",
+        data: { reference, status: "success", gateway_response: "Approved" },
+      };
+    }
+
     return {
-      success: true,
-      status: "success",
-      data: { reference, status: "success", gateway_response: "Approved" },
+      success: false,
+      status: "pending",
+      message: "Waiting for server connection to verify transaction status",
     };
   }
 

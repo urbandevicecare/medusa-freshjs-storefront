@@ -288,6 +288,16 @@ Deno.test("POS API - M-Pesa STK Push Express Checkout Initiation & Verification"
   assertEquals(verifyRes.status, 200);
   const verifyData = await verifyRes.json();
   assertEquals(verifyData.success, true);
+
+  // 3. Real live reference must not return fake dummy approval
+  const realVerifyReq = new Request(
+    "http://localhost:8000/api/pos/verify-payment?reference=paystack_live_ref_001122",
+  );
+  const realVerifyRes = await posVerifyPaymentHandler(realVerifyReq);
+  assertEquals(realVerifyRes.status, 200);
+  const realVerifyData = await realVerifyRes.json();
+  assertEquals(realVerifyData.success, false);
+  assertEquals(realVerifyData.status, "pending");
 });
 
 Deno.test("POS API - Digital Receipt & Documents Plugin Triggering on Checkout", async () => {
